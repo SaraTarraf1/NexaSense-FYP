@@ -7,5 +7,6 @@ when generating database migrations.
 """
 
 from app.models.user import User
+from app.models.revoked_token import RevokedToken
 
 __all__ = ["User"]
