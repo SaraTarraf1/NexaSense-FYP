@@ -31,6 +31,7 @@ Thumbs.db
 *.log
 *.tmp
 *.bak
+.codex-tmp/
 
 # Local databases
 *.db
