@@ -101,6 +101,42 @@ async function handleLogout() {
         </button>
       </header>
 
+<section style={{ marginTop: "32px" }}>
+  <div
+    style={{
+      background: "white",
+      padding: "28px",
+      borderRadius: "12px",
+      maxWidth: "500px",
+      boxShadow: "0 3px 14px rgba(0,0,0,0.05)",
+    }}
+  >
+    <h2>Equipment Management</h2>
+
+    <p>
+      Register and manage equipment monitored
+      by your NexaSense inspection robot.
+    </p>
+
+    <button
+      onClick={() => navigate("/equipment")}
+      style={{
+        marginTop: "12px",
+        padding: "12px 24px",
+        background: "#087e79",
+        color: "white",
+        border: "none",
+        borderRadius: "8px",
+        cursor: "pointer",
+        fontWeight: "600",
+      }}
+    >
+      Manage Equipment
+    </button>
+  </div>
+</section>
+
+
       <section style={{ marginTop: "50px" }}>
         <h2>
           {user

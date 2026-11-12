@@ -10,7 +10,11 @@ import Register from "./pages/Register.jsx";
 import Login from "./pages/Login.jsx";
 import ProjectPolicy from "./pages/ProjectPolicy.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import Equipment from "./pages/Equipment.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import RegisterEquipment from "./pages/RegisterEquipment.jsx";
+import EquipmentDetails from "./pages/EquipmentDetails.jsx";
+import EditEquipment from "./pages/EditEquipment.jsx";
 
 function App() {
   return (
@@ -21,15 +25,8 @@ function App() {
           element={<Navigate to="/login" replace />}
         />
 
-        <Route
-          path="/register"
-          element={<Register />}
-        />
-
-        <Route
-          path="/login"
-          element={<Login />}
-        />
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
 
         <Route
           path="/terms"
@@ -43,11 +40,30 @@ function App() {
 
         {/* Routes requiring authentication */}
         <Route element={<ProtectedRoute />}>
+        
           <Route
             path="/dashboard"
             element={<Dashboard />}
           />
+
+          <Route
+            path="/equipment"
+            element={<Equipment />}
+          />
+          <Route
+            path="/equipment/new"
+            element={<RegisterEquipment />}
+          />
+          <Route
+            path="/equipment/:equipmentId"
+            element={<EquipmentDetails />}
+          />
+          <Route
+            path="/equipment/:equipmentId/edit"
+            element={<EditEquipment />}
+          />
         </Route>
+        
 
         <Route
           path="*"
