@@ -1,0 +1,11 @@
+.policy-page { min-height: 100svh; padding: 40px 20px; background: #f3f6fa; color: #17253b; }
+.policy-card { max-width: 760px; margin: auto; padding: clamp(24px, 5vw, 48px); border-radius: 20px; background: white; box-shadow: 0 16px 45px #14264012; }
+.policy-page a { color: #174dcc; text-underline-offset: 3px; }
+.policy-page a:focus-visible { outline: 3px solid #174dcc; outline-offset: 4px; }
+.policy-back { display: inline-block; margin-bottom: 28px; }
+.policy-brand { font-weight: 700; color: #1765b5; }
+.policy-card h1 { font-size: clamp(28px, 5vw, 36px); margin: 12px 0; }
+.policy-card h2 { font-size: 20px; margin: 28px 0 8px; }
+.policy-card p { font-size: 16px; line-height: 1.7; overflow-wrap: anywhere; }
+.policy-card .policy-date { font-size: 14px; color: #526176; }
+.policy-card nav { margin-top: 32px; padding-top: 20px; border-top: 1px solid #dbe3ee; }

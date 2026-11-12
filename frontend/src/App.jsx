@@ -1,22 +1,37 @@
 
-import './App.css'
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
+import Register from "./pages/Register.jsx";
+import ProjectPolicy from "./pages/ProjectPolicy.jsx";
 
 function App() {
   return (
-    <main className="app-container">
-      <h1>NexaSense</h1>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/terms" element={<ProjectPolicy type="terms" />} />
+        <Route path="/privacy" element={<ProjectPolicy type="privacy" />} />
+        <Route
+          path="/"
+          element={<Navigate to="/register" replace />}
+        />
 
-      <h2>AI-Powered Autonomous Inspection Robot</h2>
+        <Route
+          path="/register"
+          element={<Register />}
+        />
 
-      <p>
-        Smart Home and Facility Maintenance Platform
-      </p>
-
-      <p className="status">
-        Frontend application is running successfully.
-      </p>
-    </main>
-  )
+        <Route
+          path="*"
+          element={<Navigate to="/register" replace />}
+        />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
