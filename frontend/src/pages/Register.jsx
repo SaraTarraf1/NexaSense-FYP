@@ -1,4 +1,4 @@
-﻿
+
 import { useState } from 'react';
 import { registerUser } from '../services/authService';
 import './Register.css';
@@ -76,7 +76,7 @@ export default function Register() {
     }
 
     if (!form.acceptTerms) {
-      next.acceptTerms = 'Accept the terms to continue.';
+      next.acceptTerms = 'Please agree to the Terms of Use and acknowledge the Privacy Policy.';
     }
 
     setErrors(next);
@@ -301,32 +301,19 @@ export default function Register() {
             ))}
           </ul>
 
-          <label className="terms-label">
-            <input
-              name="acceptTerms"
-              type="checkbox"
-              checked={form.acceptTerms}
-              onChange={updateField}
-              disabled={isSubmitting}
-              required
-              aria-describedby={
-                errors.acceptTerms ? 'terms-error' : undefined
-              }
-            />
-
-            <span>
+          <div className="terms-label">
+            <input id="acceptTerms" name="acceptTerms" type="checkbox"
+              checked={form.acceptTerms} onChange={updateField} disabled={isSubmitting}
+              required aria-invalid={Boolean(errors.acceptTerms)}
+              aria-describedby={errors.acceptTerms ? 'terms-error' : undefined} />
+            <label htmlFor="acceptTerms">
               I agree to the{' '}
-              <span className="legal-text">Terms of Use</span>
-              {' '}and{' '}
-              <span className="legal-text">Privacy Policy</span>
-            </span>
-          </label>
-
-          {errors.acceptTerms && (
-            <p className="field-error" id="terms-error">
-              {errors.acceptTerms}
-            </p>
-          )}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" aria-label="Terms of Use (opens in a new tab)">Terms of Use</a>
+              {' '}and acknowledge the{' '}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" aria-label="Privacy Policy (opens in a new tab)">Privacy Policy</a>.
+            </label>
+          </div>
+          {errors.acceptTerms && <p className="field-error terms-error" id="terms-error">{errors.acceptTerms}</p>}
 
           <button
             className="register-submit"
@@ -345,7 +332,7 @@ export default function Register() {
             )}
 
             {message && (
-              <p
+              <div
                 className={
                   messageType === 'error'
                     ? 'submit-error'
@@ -353,8 +340,16 @@ export default function Register() {
                 }
                 role={messageType === 'error' ? 'alert' : 'status'}
               >
-                {message}
-              </p>
+                {messageType === 'success' ? (
+                  <>
+                    <span className="success-icon" aria-hidden="true">✓</span>
+                    <div>
+                      <strong>Account created successfully!</strong>
+                      <p>You can now log in to your account.</p>
+                    </div>
+                  </>
+                ) : message}
+              </div>
             )}
           </div>
         </form>
