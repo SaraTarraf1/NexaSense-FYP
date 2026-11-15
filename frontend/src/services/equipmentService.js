@@ -51,7 +51,7 @@ async function equipmentRequest(endpoint, options = {}) {
     throw new Error(message);
   }
 
-  return response.json();
+  return response.status === 204 ? null : response.json();
 }
 
 // POST /api/equipment
@@ -82,4 +82,8 @@ export async function updateEquipment(equipmentId, equipmentData) {
     method: "PUT",
     body: JSON.stringify(equipmentData),
   });
+}
+
+export async function deleteEquipment(equipmentId) {
+  return equipmentRequest(`/${equipmentId}`, { method: "DELETE" });
 }

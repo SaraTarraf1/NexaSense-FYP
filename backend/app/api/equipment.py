@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -163,3 +163,24 @@ def update_equipment(
     save_equipment(db, equipment)
 
     return equipment
+
+
+@router.delete("/{equipment_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_equipment(
+    equipment_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    equipment = db.scalar(select(Equipment).where(
+        Equipment.id == equipment_id,
+        Equipment.user_id == current_user.id,
+    ))
+    if equipment is None:
+        raise HTTPException(status_code=404, detail="Equipment not found.")
+    try:
+        db.delete(equipment)
+        db.commit()
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Equipment could not be deleted. Please try again.") from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

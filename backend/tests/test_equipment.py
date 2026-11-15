@@ -89,3 +89,18 @@ def test_generated_identifier_skips_custom_identifier(client):
     assert client.post("/api/equipment", json=data).status_code == 201
     del data["identifier"]
     assert client.post("/api/equipment", json=data).json()["identifier"] == "AC2"
+
+
+def test_delete_equipment_and_owner_access(client):
+    equipment = client.post("/api/equipment", json=payload()).json()
+    endpoint = f"/api/equipment/{equipment['id']}"
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id=2)
+    assert client.delete(endpoint).status_code == 404
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id=1)
+    assert client.get(endpoint).status_code == 200
+    response = client.delete(endpoint)
+    assert response.status_code == 204
+    assert response.content == b""
+    assert client.get(endpoint).status_code == 404
+    assert client.get("/api/equipment").json() == []
+    assert client.delete(endpoint).status_code == 404

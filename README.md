@@ -1,406 +1,886 @@
-# NexaSense FYP
+**# NexaSense FYP**
 
-**AI-Powered Autonomous Inspection Robot for Smart Home and Facility Maintenance**
 
-NexaSense is a final-year engineering project for an indoor inspection system that will combine robotics, IoT sensing, AI-based anomaly detection, equipment monitoring, and web-based maintenance reporting. The **current repository is the development foundation**, not a completed autonomous robot. Sensor values are planned to be simulated during early development; real Raspberry Pi hardware and MQTT integration will follow.
 
-**Repository:** https://github.com/SaraTarraf1/NexaSense-FYP  
-**Local Windows project directory:** `C:\Users\Sara\Desktop\NexaSense-FYP` (a local folder outside OneDrive)  
-**Primary branch:** `main`
+**\*\*AI-Powered Autonomous Inspection Robot for Smart Home and Facility Maintenance\*\***
 
-## 1. Foundation completion status
 
-| Foundation task | Status | Verification |
-|---|---|---|
-| GitHub repository and project structure | Complete | Repository connected to `origin/main`; clean working tree after push |
-| Python and FastAPI backend | Complete | `/` and `/health` respond; Swagger UI available |
-| React and Vite frontend | Complete | Development server and production build verified |
-| PostgreSQL and Alembic | Complete | Connection as `nexasense_user`; revision `8b70b860f363 (head)` |
-| Postman and pytest | Complete | Postman `GET /health` returns 200; 3 pytest tests passed |
 
-This status describes the **environment and application skeleton**. Authentication, sensor ingestion, equipment management, AI detection, inspection scheduling, dashboards, robot navigation, and reports still require implementation.
+NexaSense is a final-year engineering project for an indoor inspection system that will combine robotics, IoT sensing, AI-based anomaly detection, equipment monitoring, and web-based maintenance reporting. The **\*\*current repository is the development foundation\*\***, not a completed autonomous robot. Sensor values are planned to be simulated during early development; real Raspberry Pi hardware and MQTT integration will follow.
 
-## 2. Technology stack
 
-| Layer | Technology | Version verified during setup |
-|---|---|---|
-| OS / IDE | Windows, Visual Studio Code, PowerShell | Local development |
-| Version control | Git and GitHub | `main` branch |
-| Backend language | Python | 3.12.7 |
-| Backend framework | FastAPI | 0.162.4 |
-| ASGI server | Uvicorn | 0.54.0 |
-| Database | PostgreSQL | 18.6 |
-| Database administration | pgAdmin 4 | Installed with PostgreSQL |
-| ORM / migrations | SQLAlchemy, Alembic | Exact installed versions in `backend/requirements.txt` |
-| PostgreSQL driver | psycopg 3 with binary extras | Exact version in requirements |
-| Configuration | python-dotenv | Exact version in requirements |
-| Frontend runtime | Node.js / npm | 24.22.1 / 11.19.1 |
-| UI | React / React DOM | 19.3.1 |
-| Frontend tooling | Vite | 8.3.7 |
-| API manual testing | Postman | Desktop application |
-| Automated API testing | pytest, HTTPX, FastAPI TestClient | Exact versions in requirements |
 
-**Source of truth for package versions:** `backend/requirements.txt` and `frontend/package-lock.json`. Versions above reflect the successful foundation setup; future upgrades may change them.
+**\*\*Repository:\*\*** https\://github.com/SaraTarraf1/NexaSense-FYP  
 
-## 3. Repository structure
+**\*\*Local Windows project directory:\*\*** \`C:\Users\Sara\Desktop\NexaSense-FYP\` (a local folder outside OneDrive)  
 
-```text
+**\*\*Primary branch:\*\*** \`main\`
+
+
+
+**## 1. Foundation completion status**
+
+
+
+\| Foundation task | Status | Verification |
+
+\|---|---|---|
+
+\| GitHub repository and project structure | Complete | Repository connected to \`origin/main\`; clean working tree after push |
+
+\| Python and FastAPI backend | Complete | \`/\` and \`/health\` respond; Swagger UI available |
+
+\| React and Vite frontend | Complete | Development server and production build verified |
+
+\| PostgreSQL and Alembic | Complete | Connection as \`nexasense_user\`; revision \`8b70b860f363 (head)\` |
+
+\| Postman and pytest | Complete | Postman \`GET /health\` returns 200; 3 pytest tests passed |
+
+
+
+This status describes the **\*\*environment and application skeleton\*\***. Authentication, sensor ingestion, equipment management, AI detection, inspection scheduling, dashboards, robot navigation, and reports still require implementation.
+
+
+
+**## 2. Technology stack**
+
+
+
+\| Layer | Technology | Version verified during setup |
+
+\|---|---|---|
+
+\| OS / IDE | Windows, Visual Studio Code, PowerShell | Local development |
+
+\| Version control | Git and GitHub | \`main\` branch |
+
+\| Backend language | Python | 3.12.7 |
+
+\| Backend framework | FastAPI | 0.162.4 |
+
+\| ASGI server | Uvicorn | 0.54.0 |
+
+\| Database | PostgreSQL | 18.6 |
+
+\| Database administration | pgAdmin 4 | Installed with PostgreSQL |
+
+\| ORM / migrations | SQLAlchemy, Alembic | Exact installed versions in \`backend/requirements.txt\` |
+
+\| PostgreSQL driver | psycopg 3 with binary extras | Exact version in requirements |
+
+\| Configuration | python-dotenv | Exact version in requirements |
+
+\| Frontend runtime | Node.js / npm | 24.22.1 / 11.19.1 |
+
+\| UI | React / React DOM | 19.3.1 |
+
+\| Frontend tooling | Vite | 8.3.7 |
+
+\| API manual testing | Postman | Desktop application |
+
+\| Automated API testing | pytest, HTTPX, FastAPI TestClient | Exact versions in requirements |
+
+
+
+**\*\*Source of truth for package versions:\*\*** \`backend/requirements.txt\` and \`frontend/package-lock.json\`. Versions above reflect the successful foundation setup; future upgrades may change them.
+
+
+
+**## 3. Repository structure**
+
+
+
+\`\`\`text
+
 NexaSense-FYP/
+
 ├── .gitignore
-├── README.md                         # This root guide
+
+├── README.md                         # This root guide
+
 ├── backend/
-│   ├── .env.example                   # Safe template; commit this
-│   ├── .env                           # Local secrets; NEVER commit
-│   ├── .venv/                         # Local Python environment; ignored
-│   ├── requirements.txt
-│   ├── alembic.ini
-│   ├── alembic/
-│   │   ├── env.py
-│   │   ├── script.py.mako
-│   │   └── versions/
-│   │       ├── 49a6f97c0dfc_initial_database_schema.py
-│   │       └── 8b70b860f363_initial_database_schema.py
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py
-│   │   ├── api/
-│   │   ├── core/
-│   │   │   └── database.py
-│   │   ├── models/
-│   │   ├── schemas/
-│   │   └── services/
-│   └── tests/
-│       ├── __init__.py
-│       └── test_main.py
+
+│   ├── .env.example                   # Safe template; commit this
+
+│   ├── .env                           # Local secrets; NEVER commit
+
+│   ├── .venv/                         # Local Python environment; ignored
+
+│   ├── requirements.txt
+
+│   ├── alembic.ini
+
+│   ├── alembic/
+
+│   │   ├── env.py
+
+│   │   ├── script.py.mako
+
+│   │   └── versions/
+
+│   │       ├── 49a6f97c0dfc_initial_database_schema.py
+
+│   │       └── 8b70b860f363_initial_database_schema.py
+
+│   ├── app/
+
+│   │   ├── \_\_init\_\_.py
+
+│   │   ├── main.py
+
+│   │   ├── api/
+
+│   │   ├── core/
+
+│   │   │   └── database.py
+
+│   │   ├── models/
+
+│   │   ├── schemas/
+
+│   │   └── services/
+
+│   └── tests/
+
+│       ├── \_\_init\_\_.py
+
+│       └── test_main.py
+
 ├── frontend/
-│   ├── package.json
-│   ├── package-lock.json
-│   ├── vite.config.js
-│   ├── eslint.config.js
-│   ├── index.html
-│   ├── public/
-│   └── src/
-│       ├── App.jsx
-│       ├── App.css
-│       ├── main.jsx
-│       ├── index.css
-│       ├── assets/
-│       ├── components/
-│       ├── context/
-│       ├── hooks/
-│       ├── layouts/
-│       ├── pages/
-│       ├── services/
-│       └── utils/
+
+│   ├── package.json
+
+│   ├── package-lock.json
+
+│   ├── vite.config.js
+
+│   ├── eslint.config.js
+
+│   ├── index.html
+
+│   ├── public/
+
+│   └── src/
+
+│       ├── App.jsx
+
+│       ├── App.css
+
+│       ├── main.jsx
+
+│       ├── index.css
+
+│       ├── assets/
+
+│       ├── components/
+
+│       ├── context/
+
+│       ├── hooks/
+
+│       ├── layouts/
+
+│       ├── pages/
+
+│       ├── services/
+
+│       └── utils/
+
 └── docs/
-    └── postman/
-        └── NexaSense_FYP_API.postman_collection.json
-```
 
-Empty folders are intentionally retained with `__init__.py` (Python packages) or `.gitkeep` (frontend placeholders). `frontend/node_modules/`, `frontend/dist/`, and `backend/.venv/` are generated locally and should not be committed. The two tracked initial migrations are part of the actual history; do not delete them merely because both have similar names.
+    └── postman/
 
-## 4. Fresh installation on Windows
+        └── NexaSense_FYP_API.postman_collection.json
 
-### 4.1 Install prerequisites
+\`\`\`
 
-Install **Git**, **VS Code** (with Python extension), **Python 3.12**, **Node.js 24** (includes npm), **PostgreSQL 18** (with pgAdmin and command-line tools), and **Postman**. Official websites:
 
-- Python: https://www.python.org/downloads/
-- Node.js: https://nodejs.org/
-- Git: https://git-scm.com/downloads
-- VS Code: https://code.visualstudio.com/
-- PostgreSQL: https://www.postgresql.org/download/windows/
-- Postman: https://www.postman.com/downloads/
+
+Empty folders are intentionally retained with \`\_\_init\_\_.py\` (Python packages) or \`.gitkeep\` (frontend placeholders). \`frontend/node_modules/\`, \`frontend/dist/\`, and \`backend/.venv/\` are generated locally and should not be committed. The two tracked initial migrations are part of the actual history; do not delete them merely because both have similar names.
+
+
+
+**## 4. Fresh installation on Windows**
+
+
+
+**### 4.1 Install prerequisites**
+
+
+
+Install **\*\*Git\*\***, **\*\*VS Code\*\*** (with Python extension), **\*\*Python 3.12\*\***, **\*\*Node.js 24\*\*** (includes npm), **\*\*PostgreSQL 18\*\*** (with pgAdmin and command-line tools), and **\*\*Postman\*\***. Official websites:
+
+
+
+\- Python: https\://www\.python.org/downloads/
+
+\- Node.js: https\://nodejs.org/
+
+\- Git: https\://git-scm.com/downloads
+
+\- VS Code: https\://code.visualstudio.com/
+
+\- PostgreSQL: https\://www\.postgresql.org/download/windows/
+
+\- Postman: https\://www\.postman.com/downloads/
+
+
 
 Confirm installation in PowerShell:
 
-```powershell
+
+
+\`\`\`powershell
+
 py -3.12 --version
+
 node --version
+
 npm --version
+
 git --version
+
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --version
-Get-Service -Name "postgresql*" -ErrorAction SilentlyContinue
-```
 
-During initial setup, PostgreSQL 18.6 was installed to `C:\Program Files\PostgreSQL\18`; its Windows service was `postgresql-x64-18`. Keep the PostgreSQL administrator (`postgres`) password private.
+Get-Service -Name "postgresql\*" -ErrorAction SilentlyContinue
 
-### 4.2 Clone the repository and open VS Code
+\`\`\`
 
-```powershell
+
+
+During initial setup, PostgreSQL 18.6 was installed to \`C:\Program Files\PostgreSQL\18\`; its Windows service was \`postgresql-x64-18\`. Keep the PostgreSQL administrator (\`postgres\`) password private.
+
+
+
+**### 4.2 Clone the repository and open VS Code**
+
+
+
+\`\`\`powershell
+
 New-Item -ItemType Directory -Path "C:\Users\Sara\Desktop" -Force
+
 cd "C:\Users\Sara\Desktop"
-git clone https://github.com/SaraTarraf1/NexaSense-FYP.git
+
+git clone https\://github.com/SaraTarraf1/NexaSense-FYP.git
+
 cd NexaSense-FYP
+
 code .
-```
 
-**Note:** On this computer, `[Environment]::GetFolderPath("Desktop")` returned `C:\Users\Sara\OneDrive\Desktop`. The chosen project directory `C:\Users\Sara\Desktop\NexaSense-FYP` is therefore a **separate local folder**, not the Windows Desktop folder redirected by OneDrive. On another computer, choose any suitable local directory.
+\`\`\`
 
-### 4.3 Restore the backend virtual environment
+
+
+**\*\*Note:\*\*** On this computer, \`[Environment]::GetFolderPath("Desktop")\` returned \`C:\Users\Sara\OneDrive\Desktop\`. The chosen project directory \`C:\Users\Sara\Desktop\NexaSense-FYP\` is therefore a **\*\*separate local folder\*\***, not the Windows Desktop folder redirected by OneDrive. On another computer, choose any suitable local directory.
+
+
+
+**### 4.3 Restore the backend virtual environment**
+
+
 
 From the repository root:
 
-```powershell
+
+
+\`\`\`powershell
+
 cd backend
+
 py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
+
+.\\.venv\Scripts\Activate.ps1
+
 python -m pip install -r requirements.txt
+
 python -m pip check
-```
 
-In VS Code select **Python: Select Interpreter** and choose `backend\.venv\Scripts\python.exe`. If the project is moved to a different path, **recreate `.venv`** because executable launchers can retain the previous absolute path. Do not commit `.venv`.
+\`\`\`
 
-### 4.4 Restore the frontend
+
+
+In VS Code select **\*\*Python: Select Interpreter\*\*** and choose \`backend\\.venv\Scripts\python.exe\`. If the project is moved to a different path, **\*\*recreate&#x20;**\`.venv\`**\*\*** because executable launchers can retain the previous absolute path. Do not commit \`.venv\`.
+
+
+
+**### 4.4 Restore the frontend**
+
+
 
 Open a separate VS Code terminal:
 
-```powershell
+
+
+\`\`\`powershell
+
 cd "C:\Users\Sara\Desktop\NexaSense-FYP\frontend"
+
 npm ci
+
 npm run lint
+
 npm run build
-```
 
-`npm ci` uses the committed `package-lock.json` for a reproducible installation. For ordinary local changes, `npm install` is also available.
+\`\`\`
 
-## 5. PostgreSQL database configuration
 
-### 5.1 Create the application role and database
 
-In **pgAdmin 4**, connect to the local PostgreSQL 18 server as an administrator. Create a login role named `nexasense_user` with a **strong private password** and without superuser or database-creation privileges. Create a database named `nexasense_db`, with `nexasense_user` as owner. Default local PostgreSQL port is `5432` in this setup.
+\`npm ci\` uses the committed \`package-lock.json\` for a reproducible installation. For ordinary local changes, \`npm install\` is also available.
 
-Equivalent SQL (execute as a PostgreSQL administrator; substitute a private password and **do not commit or share it**):
 
-```sql
+
+**## 5. PostgreSQL database configuration**
+
+
+
+**### 5.1 Create the application role and database**
+
+
+
+In **\*\*pgAdmin 4\*\***, connect to the local PostgreSQL 18 server as an administrator. Create a login role named \`nexasense_user\` with a **\*\*strong private password\*\*** and without superuser or database-creation privileges. Create a database named \`nexasense_db\`, with \`nexasense_user\` as owner. Default local PostgreSQL port is \`5432\` in this setup.
+
+
+
+Equivalent SQL (execute as a PostgreSQL administrator; substitute a private password and **\*\*do not commit or share it\*\***):
+
+
+
+\`\`\`sql
+
 CREATE ROLE nexasense_user LOGIN PASSWORD 'REPLACE_WITH_PRIVATE_PASSWORD';
+
 CREATE DATABASE nexasense_db OWNER nexasense_user;
-```
 
-Run `CREATE DATABASE` outside an explicit transaction block. If the role/database already exists, do not run these creation statements again.
+\`\`\`
 
-### 5.2 Configure local environment variables
 
-Inside `backend`, copy the committed template to a local `.env`:
 
-```powershell
+Run \`CREATE DATABASE\` outside an explicit transaction block. If the role/database already exists, do not run these creation statements again.
+
+
+
+**### 5.2 Configure local environment variables**
+
+
+
+Inside \`backend\`, copy the committed template to a local \`.env\`:
+
+
+
+\`\`\`powershell
+
 cd "C:\Users\Sara\Desktop\NexaSense-FYP\backend"
+
 Copy-Item .env.example .env
-```
 
-Set values in `backend/.env`:
+\`\`\`
 
-```dotenv
+
+
+Set values in \`backend/.env\`:
+
+
+
+\`\`\`dotenv
+
 DB_HOST=localhost
+
 DB_PORT=5432
+
 DB_NAME=nexasense_db
+
 DB_USER=nexasense_user
+
 DB_PASSWORD=REPLACE_WITH_YOUR_PRIVATE_PASSWORD
-```
 
-**Never put the real password in README files, screenshots, Git commits, Postman exports, or messages.** If the password includes `#`, spaces, or other special characters, follow `.env` quoting rules; SQLAlchemy's `URL.create()` safely handles URL encoding when building the connection.
+\`\`\`
 
-`backend/app/core/database.py` loads the `.env`, constructs a SQLAlchemy PostgreSQL URL using the `psycopg` driver, creates the engine and session factory, and defines the declarative `Base` for future models. The PostgreSQL server and database are **not stored inside the Git repository**: each developer needs their own PostgreSQL instance or approved shared development database.
 
-### 5.3 Apply existing Alembic migrations
+
+**\*\*Never put the real password in README files, screenshots, Git commits, Postman exports, or messages.\*\*** If the password includes \`#\`, spaces, or other special characters, follow \`.env\` quoting rules; SQLAlchemy's \`URL.create()\` safely handles URL encoding when building the connection.
+
+
+
+\`backend/app/core/database.py\` loads the \`.env\`, constructs a SQLAlchemy PostgreSQL URL using the \`psycopg\` driver, creates the engine and session factory, and defines the declarative \`Base\` for future models. The PostgreSQL server and database are **\*\*not stored inside the Git repository\*\***: each developer needs their own PostgreSQL instance or approved shared development database.
+
+
+
+**### 5.3 Apply existing Alembic migrations**
+
+
 
 From the activated backend environment:
 
-```powershell
+
+
+\`\`\`powershell
+
 python -m alembic upgrade head
+
 python -m alembic current
-```
+
+\`\`\`
+
+
 
 The verified revision at foundation completion was:
 
-```text
+
+
+\`\`\`text
+
 8b70b860f363 (head)
-```
 
-In pgAdmin, open Query Tool on `nexasense_db`:
+\`\`\`
 
-```sql
-SELECT * FROM alembic_version;
+
+
+In pgAdmin, open Query Tool on \`nexasense_db\`:
+
+
+
+\`\`\`sql
+
+SELECT \* FROM alembic_version;
+
 SELECT current_database(), current_user;
-```
 
-The version query should show the current Alembic revision. In pgAdmin, `current_user` may be `postgres` if the Query Tool is connected as the administrator; the Python application uses `nexasense_user`.
+\`\`\`
 
-**Future schema changes:** Define SQLAlchemy models, ensure they are imported into Alembic's metadata context, then run:
 
-```powershell
+
+The version query should show the current Alembic revision. In pgAdmin, \`current_user\` may be \`postgres\` if the Query Tool is connected as the administrator; the Python application uses \`nexasense_user\`.
+
+
+
+**\*\*Future schema changes:\*\*** Define SQLAlchemy models, ensure they are imported into Alembic's metadata context, then run:
+
+
+
+\`\`\`powershell
+
 python -m alembic revision --autogenerate -m "Describe schema change"
-# Review the generated migration carefully before applying it.
+
+*# Review the generated migration carefully before applying it.*
+
 python -m alembic upgrade head
+
 python -m alembic current
-```
 
-Do not blindly run autogeneration without importing the relevant model modules into Alembic's metadata. The foundation revisions establish migration tracking; they do **not** implement the complete FYP ERD.
+\`\`\`
 
-## 6. Run the application locally
 
-Use **two separate VS Code terminals**.
 
-### Terminal A — FastAPI backend
+Do not blindly run autogeneration without importing the relevant model modules into Alembic's metadata. The foundation revisions establish migration tracking; they do **\*\*not\*\*** implement the complete FYP ERD.
 
-```powershell
+
+
+**## 6. Run the application locally**
+
+
+
+Use **\*\*two separate VS Code terminals\*\***.
+
+
+
+**### Terminal A — FastAPI backend**
+
+
+
+\`\`\`powershell
+
 cd "C:\Users\Sara\Desktop\NexaSense-FYP\backend"
-.\.venv\Scripts\Activate.ps1
-python -m uvicorn app.main:app --reload
-```
 
-- Backend root: http://127.0.0.1:8000/
-- Health endpoint: http://127.0.0.1:8000/health
-- Interactive Swagger API docs: http://127.0.0.1:8000/docs
-- OpenAPI schema: http://127.0.0.1:8000/openapi.json
+.\\.venv\Scripts\Activate.ps1
+
+python -m uvicorn app.main:app --reload
+
+\`\`\`
+
+
+
+\- Backend root: http\://127.0.0.1:8000/
+
+\- Health endpoint: http\://127.0.0.1:8000/health
+
+\- Interactive Swagger API docs: http\://127.0.0.1:8000/docs
+
+\- OpenAPI schema: http\://127.0.0.1:8000/openapi.json
+
+
 
 Expected responses:
 
-```json
+
+
+\`\`\`json
+
 {"message":"Welcome to NexaSense API","status":"running"}
-```
 
-```json
+\`\`\`
+
+
+
+\`\`\`json
+
 {"status":"healthy","service":"NexaSense Backend"}
-```
 
-The `/health` endpoint currently reports the **application's health**, not an active database or sensor health check.
+\`\`\`
 
-### Terminal B — React frontend
 
-```powershell
+
+The \`/health\` endpoint currently reports the **\*\*application's health\*\***, not an active database or sensor health check.
+
+
+
+**### Terminal B — React frontend**
+
+
+
+\`\`\`powershell
+
 cd "C:\Users\Sara\Desktop\NexaSense-FYP\frontend"
+
 npm run dev
-```
 
-Open http://localhost:5173/ (or the local URL printed by Vite). The current frontend is a welcome/skeleton screen. It does not yet implement all dashboard features or necessarily communicate with the backend.
+\`\`\`
 
-Stop either server using **Ctrl+C** in its terminal.
 
-## 7. Testing
 
-### 7.1 Postman manual testing
+Open http\://localhost:5173/ (or the local URL printed by Vite). The current frontend is a welcome/skeleton screen. It does not yet implement all dashboard features or necessarily communicate with the backend.
+
+
+
+Stop either server using **\*\*Ctrl+C\*\*** in its terminal.
+
+
+
+**## 7. Testing**
+
+
+
+**### 7.1 Postman manual testing**
+
+
 
 Import the committed collection:
 
-`docs/postman/NexaSense_FYP_API.postman_collection.json`
 
-In Postman choose **Import**, select the file, and open **NexaSense FYP API**. Start the backend first. The collection contains the foundation requests:
 
-| Request | Method | URL | Expected |
-|---|---|---|---|
-| Root Endpoint | GET | `http://127.0.0.1:8000/` | HTTP 200 and welcome JSON |
-| Health Check | GET | `http://127.0.0.1:8000/health` | HTTP 200 and healthy JSON |
+\`docs/postman/NexaSense_FYP_API.postman_collection.json\`
+
+
+
+In Postman choose **\*\*Import\*\***, select the file, and open **\*\*NexaSense FYP API\*\***. Start the backend first. The collection contains the foundation requests:
+
+
+
+\| Request | Method | URL | Expected |
+
+\|---|---|---|---|
+
+\| Root Endpoint | GET | \`http\://127.0.0.1:8000/\` | HTTP 200 and welcome JSON |
+
+\| Health Check | GET | \`http\://127.0.0.1:8000/health\` | HTTP 200 and healthy JSON |
+
+
 
 Do not export authentication tokens or passwords into committed collections. Later, organize requests into Authentication, Equipment, Sensors, Inspections, Anomalies, and Alerts folders.
 
-### 7.2 pytest automated tests
 
-```powershell
+
+**### 7.2 pytest automated tests**
+
+
+
+\`\`\`powershell
+
 cd "C:\Users\Sara\Desktop\NexaSense-FYP\backend"
-.\.venv\Scripts\Activate.ps1
+
+.\\.venv\Scripts\Activate.ps1
+
 python -m pytest tests/ -v
-```
 
-`backend/tests/test_main.py` tests: (1) root response is HTTP 200 with expected JSON; (2) health response is HTTP 200 with expected JSON; (3) an unknown path returns HTTP 404. **Foundation result: 3 passed.** The run also displayed one Starlette/FastAPI deprecation warning about importing `TestClient`; this was a warning, not a test failure. The tests use FastAPI's `TestClient` and do not require Uvicorn to be running.
+\`\`\`
 
-## 8. GitHub collaboration workflow
 
-```powershell
+
+\`backend/tests/test_main.py\` tests: (1) root response is HTTP 200 with expected JSON; (2) health response is HTTP 200 with expected JSON; (3) an unknown path returns HTTP 404. **\*\*Foundation result: 3 passed.\*\*** The run also displayed one Starlette/FastAPI deprecation warning about importing \`TestClient\`; this was a warning, not a test failure. The tests use FastAPI's \`TestClient\` and do not require Uvicorn to be running.
+
+
+
+**## 8. GitHub collaboration workflow**
+
+
+
+\`\`\`powershell
+
 cd "C:\Users\Sara\Desktop\NexaSense-FYP"
+
 git status
+
 git pull origin main
-# Edit files, then review changes.
-git add <specific-files>
+
+*# Edit files, then review changes.*
+
+git add \<specific-files>
+
 git diff --cached --name-only
+
 git commit -m "Describe the change"
+
 git push origin main
-```
 
-Use feature branches and pull requests when collaborating, particularly for model and migration changes. **Never commit** `.env`, `.venv/`, `node_modules/`, credentials, or generated build output. `backend/.env.example` is intentionally committed; `backend/.env` is ignored. Confirm with:
+\`\`\`
 
-```powershell
+
+
+Use feature branches and pull requests when collaborating, particularly for model and migration changes. **\*\*Never commit\*\*** \`.env\`, \`.venv/\`, \`node_modules/\`, credentials, or generated build output. \`backend/.env.example\` is intentionally committed; \`backend/.env\` is ignored. Confirm with:
+
+
+
+\`\`\`powershell
+
 git check-ignore -v backend/.env
+
 git check-ignore -v backend/.venv
+
 git status
-```
 
-The final foundation Postman/pytest commit was `0b42b24` on `main` and the working tree was clean after pushing. Future README edits will create a new commit.
+\`\`\`
 
-## 9. Issues encountered and resolutions
 
-| Issue during setup | Cause / resolution |
-|---|---|
-| PowerShell refused to activate `.venv` / run npm scripts | Execution policy blocked PowerShell scripts. Applied `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`, then reopened the terminal. |
-| Python dependency installation was slow or timed out | Initial pip resolver backtracking/network timeouts. Retried and installed backend packages successfully; saved working versions to `requirements.txt`. |
-| `psql` command not found | PostgreSQL binaries were not on `PATH`; used `& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --version`. |
-| PostgreSQL authentication failed for `nexasense_user` | Reset role password in pgAdmin and updated private `backend/.env`; subsequent SQLAlchemy connection succeeded. |
-| Alembic `current` initially showed no revision | No migrations had been applied. Created/applied baseline migrations and confirmed `8b70b860f363 (head)`. |
-| Moving project out of OneDrive failed with "file is being used by another process" | Closed VS Code/terminals and other programs holding project files; moved the project to `C:\Users\Sara\Desktop\NexaSense-FYP`. |
-| Python environment after moving directories | Recreated `backend/.venv` at the new path and reinstalled from `requirements.txt`; Python, pip, and Alembic checks passed. |
-| pytest displayed one deprecation warning | Three tests passed; warning originated in testing dependencies. Revisit when upgrading FastAPI/Starlette. |
-| Postman collection initially exported to repository root | Moved JSON to `docs/postman/` and committed it. |
 
-## 10. Planned functional architecture (not yet implemented)
+The final foundation Postman/pytest commit was \`0b42b24\` on \`main\` and the working tree was clean after pushing. Future README edits will create a new commit.
 
-```text
+
+
+**## 9. Issues encountered and resolutions**
+
+
+
+\| Issue during setup | Cause / resolution |
+
+\|---|---|
+
+\| PowerShell refused to activate \`.venv\` / run npm scripts | Execution policy blocked PowerShell scripts. Applied \`Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser\`, then reopened the terminal. |
+
+\| Python dependency installation was slow or timed out | Initial pip resolver backtracking/network timeouts. Retried and installed backend packages successfully; saved working versions to \`requirements.txt\`. |
+
+\| \`psql\` command not found | PostgreSQL binaries were not on \`PATH\`; used \`& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --version\`. |
+
+\| PostgreSQL authentication failed for \`nexasense_user\` | Reset role password in pgAdmin and updated private \`backend/.env\`; subsequent SQLAlchemy connection succeeded. |
+
+\| Alembic \`current\` initially showed no revision | No migrations had been applied. Created/applied baseline migrations and confirmed \`8b70b860f363 (head)\`. |
+
+\| Moving project out of OneDrive failed with "file is being used by another process" | Closed VS Code/terminals and other programs holding project files; moved the project to \`C:\Users\Sara\Desktop\NexaSense-FYP\`. |
+
+\| Python environment after moving directories | Recreated \`backend/.venv\` at the new path and reinstalled from \`requirements.txt\`; Python, pip, and Alembic checks passed. |
+
+\| pytest displayed one deprecation warning | Three tests passed; warning originated in testing dependencies. Revisit when upgrading FastAPI/Starlette. |
+
+\| Postman collection initially exported to repository root | Moved JSON to \`docs/postman/\` and committed it. |
+
+
+
+**## 10. Planned functional architecture (not yet implemented)**
+
+
+
+\`\`\`text
+
 [Indoor equipment / facilities]
-           |
+
+           |
+
 [Simulated readings initially; later real sensors on Raspberry Pi]
-           |
+
+           |
+
 [Future ingestion: HTTP API and/or MQTT bridge]
-           |
+
+           |
+
 [FastAPI services + validation + anomaly detection]
-           |
+
+           |
+
 [PostgreSQL: equipment, sensors, readings, inspections,
- anomalies, faults, alerts, maintenance history, users]
-           |
+
+ anomalies, faults, alerts, maintenance history, users]
+
+           |
+
 [React web dashboard: monitoring, alerts, history, reports]
-```
 
-**Planned feature areas** (based on FYP scope): user registration/login and role-based access; equipment and sensor management; inspection records; simulated multi-sensor monitoring; AI anomaly detection and fault classification; real-time alerts; web dashboard; later autonomous navigation, mobile app, maintenance recommendations, and reporting. The detailed entities, permissions, workflows, and relationships should follow the approved ERD, use cases, and Azure DevOps user stories—not assumptions in this README.
+\`\`\`
 
-### Raspberry Pi and MQTT migration plan
 
-1. **Keep a stable reading format:** agree on `device_id`, `equipment_id`, `sensor_type`, `value`, `unit`, `timestamp`, and data-quality/status fields. Define Pydantic validation schemas and test them using simulated payloads first.
-2. **Introduce a sensor ingestion service:** implement FastAPI endpoints or a background MQTT subscriber/worker that validates incoming messages before storing them. Avoid running a long-lived MQTT subscriber inside a per-request handler.
-3. **Choose and configure a broker:** for development, use an approved local or managed MQTT broker. Define topics, QoS, authentication, TLS, reconnect behavior, and message deduplication. Do not put broker credentials in source code.
-4. **Connect real Raspberry Pi sensors:** read physical sensor values on the Pi, attach timestamps/device identity, and publish messages using a Python MQTT client. Keep the Pi code separate from the web UI and database credentials.
-5. **Preserve the backend contract:** both simulator and real hardware should produce the same validated payload shape so dashboards and anomaly-detection logic need minimal changes.
-6. **Handle failures:** design for sensor disconnects, stale readings, duplicate MQTT messages, out-of-range values, and temporary database/network outages.
-7. **Extend the schema with migrations:** add actual sensor, reading, inspection, anomaly, and alert models through reviewed Alembic migrations; evaluate time-series partitioning or TimescaleDB only if measurements justify it.
-8. **Test in stages:** unit tests for parsing and thresholds; API integration tests; MQTT message flow tests; end-to-end dashboard tests; then physical hardware verification.
 
-**MQTT and Raspberry Pi are future integration work, not currently installed or verified in this repository.** No Kubernetes, Kafka, RabbitMQ, or Docker stack is required for the five foundation tasks documented here.
+**\*\*Planned feature areas\*\*** (based on FYP scope): user registration/login and role-based access; equipment and sensor management; inspection records; simulated multi-sensor monitoring; AI anomaly detection and fault classification; real-time alerts; web dashboard; later autonomous navigation, mobile app, maintenance recommendations, and reporting. The detailed entities, permissions, workflows, and relationships should follow the approved ERD, use cases, and Azure DevOps user stories—not assumptions in this README.
 
-## 11. Quick verification checklist
+
+
+**### Raspberry Pi and MQTT migration plan**
+
+
+
+1\. **\*\*Keep a stable reading format:\*\*** agree on \`device_id\`, \`equipment_id\`, \`sensor_type\`, \`value\`, \`unit\`, \`timestamp\`, and data-quality/status fields. Define Pydantic validation schemas and test them using simulated payloads first.
+
+2\. **\*\*Introduce a sensor ingestion service:\*\*** implement FastAPI endpoints or a background MQTT subscriber/worker that validates incoming messages before storing them. Avoid running a long-lived MQTT subscriber inside a per-request handler.
+
+3\. **\*\*Choose and configure a broker:\*\*** for development, use an approved local or managed MQTT broker. Define topics, QoS, authentication, TLS, reconnect behavior, and message deduplication. Do not put broker credentials in source code.
+
+4\. **\*\*Connect real Raspberry Pi sensors:\*\*** read physical sensor values on the Pi, attach timestamps/device identity, and publish messages using a Python MQTT client. Keep the Pi code separate from the web UI and database credentials.
+
+5\. **\*\*Preserve the backend contract:\*\*** both simulator and real hardware should produce the same validated payload shape so dashboards and anomaly-detection logic need minimal changes.
+
+6\. **\*\*Handle failures:\*\*** design for sensor disconnects, stale readings, duplicate MQTT messages, out-of-range values, and temporary database/network outages.
+
+7\. **\*\*Extend the schema with migrations:\*\*** add actual sensor, reading, inspection, anomaly, and alert models through reviewed Alembic migrations; evaluate time-series partitioning or TimescaleDB only if measurements justify it.
+
+8\. **\*\*Test in stages:\*\*** unit tests for parsing and thresholds; API integration tests; MQTT message flow tests; end-to-end dashboard tests; then physical hardware verification.
+
+
+
+**\*\*MQTT and Raspberry Pi are future integration work, not currently installed or verified in this repository.\*\*** No Kubernetes, Kafka, RabbitMQ, or Docker stack is required for the five foundation tasks documented here.
+
+
+
+**## 11. Quick verification checklist**
+
+
 
 From the project root after a fresh installation:
 
-```powershell
-# Git
+
+
+\`\`\`powershell
+
+*# Git*
+
 git status
 
-# Backend dependencies and database migration
+
+
+*# Backend dependencies and database migration*
+
 cd backend
-.\.venv\Scripts\Activate.ps1
+
+.\\.venv\Scripts\Activate.ps1
+
 python --version
+
 python -m pip check
+
 python -m alembic current
+
 python -m pytest tests/ -v
 
-# Frontend checks (in another terminal)
+
+
+*# Frontend checks (in another terminal)*
+
 cd ..\frontend
+
 npm run lint
+
 npm run build
-```
 
-For live manual checks, run `python -m uvicorn app.main:app --reload` from `backend`, then `npm run dev` from `frontend`, and test the two Postman requests. A clean environment should have its own local `.env` and PostgreSQL database configured before running Alembic.
+\`\`\`
 
-## 12. Next development steps
+
+
+For live manual checks, run \`python -m uvicorn app.main:app --reload\` from \`backend\`, then \`npm run dev\` from \`frontend\`, and test the two Postman requests. A clean environment should have its own local \`.env\` and PostgreSQL database configured before running Alembic.
+
+
+
+**## 12. Next development steps**
+
+
 
 After the five foundation tasks, proceed with the approved Azure DevOps feature stories in dependency order: authentication and roles, core equipment/sensor data model, simulated sensor ingestion, anomaly detection, alerts, and web dashboard. Add tests and migrations incrementally, and keep README instructions updated as actual features are implemented.
 
+
+
+\---
+
+
+
+**\*\*Security reminder:\*\*** The committed README and \`.env.example\` contain no real database password. The local \`.env\` is required but intentionally excluded from GitHub.
+
+
 ---
 
-**Security reminder:** The committed README and `.env.example` contain no real database password. The local `.env` is required but intentionally excluded from GitHub.
+## 13. Implemented user stories — development update (November 2026)
+
+The sections above document the original project foundation and setup at that time. The following four user stories have **since been implemented** and merged into the application's development history. This section is additive; the original foundation notes above are retained as historical setup documentation.
+
+### User Story 1 — User Registration (Completed)
+
+**As a new user, I want to register for a NexaSense account so that I can access the platform securely.**
+
+Implemented functionality:
+- User registration through the React frontend.
+- FastAPI backend registration and user data persistence in PostgreSQL.
+- Input validation and handling of unsuccessful registration requests.
+
+### User Story 2 — User Login and Authentication (Completed)
+
+**As a registered user, I want to log in securely so that I can access my equipment and inspection pages.**
+
+Implemented functionality:
+- Login interface connected to FastAPI authentication endpoints.
+- JWT-based authentication for protected API requests.
+- Protected frontend routes and an authenticated-user check (`/api/auth/me`).
+- Session handling and logout behavior.
+
+### User Story 3 — Equipment Profiles and Identification (Completed)
+
+**As an authenticated user, I want to register and manage equipment profiles so that equipment can be uniquely identified and inspected.**
+
+Implemented functionality:
+- Equipment registration, listing, detail view and editing.
+- Equipment-type-based identifiers, including supported categories such as air conditioners, pumps and generators.
+- PostgreSQL equipment records, FastAPI equipment endpoints and Alembic migrations.
+- Equipment management interfaces in the React application.
+
+Relevant source locations include `backend/app/api/equipment.py`, `backend/app/models/equipment.py`, `frontend/src/pages/Equipment.jsx` and `frontend/src/pages/EquipmentDetails.jsx`.
+
+### User Story 4 — Multi-Sensor Monitoring (Completed; inspection-based prototype)
+
+**As an authenticated user, I want to collect and monitor sensor measurements during equipment inspections so that I can observe equipment conditions and retain measurement history.**
+
+Implemented functionality:
+- Sensor configuration by equipment type and simulated **temperature**, **vibration** and **thermal** readings.
+- Inspection creation and lifecycle management: **Active**, **Completed** and **Cancelled**.
+- Background sensor collection during active inspections, with configured collection intervals of approximately five seconds.
+- Measurement validation, distinguishing **valid**, **invalid** (outside physical sensor limits) and **missing** readings.
+- Storage of inspections, sensor definitions and timestamped sensor readings in PostgreSQL.
+- Authenticated inspection and sensor-reading API endpoints.
+- React inspection list and monitoring pages, with automatic polling, latest values and reading history.
+- Collection stops when an inspection is completed or cancelled; previously stored readings remain available.
+
+Relevant source locations include `backend/app/api/inspections.py`, `backend/app/api/sensor_readings.py`, `backend/app/services/sensor_scheduler.py`, `backend/app/services/sensor_validation.py`, `frontend/src/pages/Inspections.jsx` and `frontend/src/pages/InspectionMonitoring.jsx`.
+
+**Scope clarification:** Inspection Management was implemented as the workflow supporting User Story 4, not as a separate fifth completed user story. Sensor readings are simulated and collected during active inspections; continuous 24/7 hardware monitoring has not yet been implemented.
+
+### Database setup for the completed features
+
+After installing dependencies and configuring the local PostgreSQL database, run these commands from the activated `backend` environment:
+
+```powershell
+python -m alembic upgrade head
+python -m scripts.seed_sensors
+```
+
+The sensor seed script registers the temperature, vibration and thermal sensor definitions. The verified inspection/sensor migration revision is `4cf64549159c`. On November 15, 2026, the local database migration and sensor seeding completed successfully.
+
+**Equipment-type note:** Sensor assignment depends on a recognized equipment type. For example, `HVAC` maps to the `AC` sensor configuration, whereas the mistyped category `HVA` does not; correct the equipment category before starting an inspection.
+
+### GitHub progress and next user story
+
+The latest verified merged `main` commit for these features was `4cf466b` (pull request #4, Multi-Sensor Monitoring). The local checkout was verified synchronized with `origin/main` and clean after pulling.
+
+**Next: User Story 5 — Equipment Monitoring.** Build an equipment-level view of the latest sensor readings, measurement trends and monitoring history using the existing equipment profiles and inspection data. AI anomaly detection, fault classification, alerting, robot navigation, real Raspberry Pi sensors and MQTT remain future work.
