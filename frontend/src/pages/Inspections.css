@@ -1,0 +1,136 @@
+
+.inspections-page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.inspections-header h1 {
+  font-size: 30px;
+  margin: 8px 0;
+}
+
+.inspections-header p {
+  color: #64748b;
+}
+
+.inspections-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #2563eb !important;
+}
+
+.inspections-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 28px;
+}
+
+.inspections-card h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+
+.inspections-card > p {
+  color: #64748b;
+  margin-bottom: 22px;
+}
+
+.inspections-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 520px;
+}
+
+.inspections-card label {
+  font-weight: 600;
+}
+
+.inspections-card select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  color: #0f172a;
+}
+
+.inspections-card button {
+  padding: 12px 20px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inspections-card button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inspections-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 14px;
+  border-radius: 8px;
+}
+
+.inspections-table-wrapper {
+  overflow-x: auto;
+}
+
+.inspections-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.inspections-table th,
+.inspections-table td {
+  padding: 14px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.inspections-table th {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.inspection-status {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.inspection-status.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.inspection-status.completed {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.inspection-status.cancelled {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+@media (max-width: 640px) {
+  .inspections-card {
+    padding: 18px;
+  }
+
+  .inspections-header h1 {
+    font-size: 24px;
+  }
+}

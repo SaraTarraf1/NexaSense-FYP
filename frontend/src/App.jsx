@@ -15,6 +15,9 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import RegisterEquipment from "./pages/RegisterEquipment.jsx";
 import EquipmentDetails from "./pages/EquipmentDetails.jsx";
 import EditEquipment from "./pages/EditEquipment.jsx";
+import Inspections from "./pages/Inspections.jsx";
+import InspectionMonitoring from "./pages/InspectionMonitoring.jsx";
+
 
 function App() {
   return (
@@ -61,6 +64,14 @@ function App() {
           <Route
             path="/equipment/:equipmentId/edit"
             element={<EditEquipment />}
+          />
+          <Route
+            path="/inspections"
+            element={<Inspections />}
+          />
+          <Route
+            path="/inspections/:inspectionId"
+            element={<InspectionMonitoring />}
           />
         </Route>
         

@@ -1,18 +1,36 @@
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
-
 from app.api.equipment import router as equipment_router
+from app.api.inspections import router as inspections_router
+from app.api.sensor_readings import router as sensor_readings_router
+from app.services.sensor_scheduler import sensor_scheduler
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Start simulated sensor collection.
+    sensor_scheduler.start()
+
+    try:
+        yield
+    finally:
+        # Stop collection when the backend shuts down.
+        sensor_scheduler.stop()
+
 
 app = FastAPI(
     title="NexaSense API",
     description="AI-Powered Autonomous Inspection Robot Backend",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
-# Allow the React frontend to communicate with FastAPI
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -24,10 +42,11 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
-# Register authentication routes
+
 app.include_router(auth_router)
 app.include_router(equipment_router)
-
+app.include_router(inspections_router)
+app.include_router(sensor_readings_router)
 
 @app.get("/")
 def root():
