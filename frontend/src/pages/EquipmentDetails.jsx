@@ -1,8 +1,9 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import EquipmentLayout from "../components/EquipmentLayout";
 import { getEquipmentById } from "../services/equipmentService";
 import "./EquipmentDetails.css";
+import { EquipmentMonitoringPanel } from "./EquipmentMonitoring";
 
 const sensors = [
   { name: "Temperature", short: "Temp", unit: "°C", color: "temperature" },
@@ -102,7 +103,6 @@ export default function EquipmentDetails() {
       {!equipment && !error && <p role="status">Loading equipment details...</p>}
       {equipment && !error && <>
         {state?.success && <p className="equipment-success" role="status">{state.success}</p>}
-        <div className="eq-monitor-banner"><span className="eq-monitor-label"><i />Monitoring</span><span><strong>Awaiting inspection data</strong><span className="eq-banner-description"> · No live inspection information available</span></span><button className="eq-text-link" onClick={() => setTab("inspections")}>View inspections <span aria-hidden="true">→</span></button></div>
         <header className="eq-profile-header">
           <div className="eq-profile-main">
             <div className="eq-profile-code">{equipment.identifier}<span className="equipment-badge active">{equipment.status}</span></div>
@@ -120,7 +120,7 @@ export default function EquipmentDetails() {
         </header>
         <div className="eq-detail-tabs" role="tablist" aria-label="Equipment details">{tabs.map(([value, label], index) => <button key={value} id={`eq-tab-${value}`} role="tab" aria-selected={tab === value} aria-controls="eq-detail-panel" tabIndex={tab === value ? 0 : -1} onKeyDown={event => tabKeyDown(event, index)} onClick={() => setTab(value)}>{label}</button>)}</div>
         <div id="eq-detail-panel" role="tabpanel" aria-labelledby={`eq-tab-${tab}`} tabIndex={0}>
-          {tab === "overview" && <><SensorCards /><div className="eq-overview-grid">{trend}<div className="eq-overview-aside">{faults}{healthHistory}</div></div></>}
+          {tab === "overview" && <EquipmentMonitoringPanel key={equipment.id} equipmentId={equipment.id} />}
           {tab === "sensors" && <><SensorCards /><div className="eq-history-full">{trend}</div></>}
           {tab === "health" && <div className="eq-health-grid">{faults}{healthHistory}</div>}
           {tab === "inspections" && <section className="eq-detail-card"><h2>Inspections</h2><EmptyState title="Inspection history is unavailable">Inspections for this equipment will appear when the inspection service is connected.</EmptyState></section>}
