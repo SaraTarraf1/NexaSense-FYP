@@ -1,8 +1,9 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import EquipmentLayout from "../components/EquipmentLayout";
 import AddEquipmentModal from "../components/AddEquipmentModal";
-import { getAllEquipment } from "../services/equipmentService";
+import DeleteEquipmentModal from "../components/DeleteEquipmentModal";
+import { deleteEquipment, getAllEquipment } from "../services/equipmentService";
 
 function EquipmentIcon({ type }) {
   const name = type.toLowerCase();
@@ -29,6 +30,30 @@ export default function Equipment({ defaultAddOpen = false }) {
   const [ascending, setAscending] = useState(true);
   const [page, setPage] = useState(1);
   const [attempt, setAttempt] = useState(0);
+  const [deleting, setDeleting] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [pendingDelete, setPendingDelete] = useState(null);
+
+  async function removeEquipment(item) {
+    if (deleting !== null) return;
+    setDeleting(item.id);
+    setDeleteError("");
+    setSuccess("");
+    try {
+      await deleteEquipment(item.id);
+      setEquipment(previous => previous.filter(equipment => equipment.id !== item.id));
+      setSuccess(`Equipment "${item.name}" deleted successfully.`);
+      setPendingDelete(null);
+    } catch (err) {
+      setDeleteError(err.message);
+    } finally {
+      setDeleting(null);
+    }
+  }
+
+  function deleteButton(item) {
+    return <button type="button" className="equipment-delete-btn" disabled={deleting !== null} onClick={() => { setDeleteError(""); setPendingDelete(item); }} aria-label={`Delete ${item.name} (${item.identifier})`}>{deleting === item.id ? "Deleting..." : "Delete"}</button>;
+  }
 
   useEffect(() => {
     let active = true;
@@ -84,12 +109,13 @@ export default function Equipment({ defaultAddOpen = false }) {
         {visible.length === 0 ? <div className="equipment-empty"><h2>{hasFilters || equipment.length ? "No matching equipment" : "Your registry starts here"}</h2><p>{hasFilters || equipment.length ? "Try another name, identifier or filter." : "Add your first machine to keep its profile and inspection information in one place."}</p><button className="equipment-add-btn" onClick={() => setAdding(true)}>+ Add equipment</button></div> : view === "table" ?
           <div className="equipment-table-wrap"><table className="equipment-table"><thead><tr><th aria-sort={ascending ? "ascending" : "descending"}><button className="equipment-sort" onClick={() => setAscending(value => !value)}>Equipment <span aria-hidden="true">{ascending ? "↑" : "↓"}</span></button></th><th>Type</th><th>Location</th><th>Health</th><th>Last inspection</th><th>Status</th><th><span className="equipment-sr-only">Actions</span></th></tr></thead><tbody>{visible.map(item => <tr key={item.id}>
             <td><div className="equipment-table-name"><EquipmentIcon type={item.equipment_type} /><Link to={`/equipment/${item.id}`}><strong>{item.name}</strong><small>{item.identifier}</small></Link></div></td>
-            <td>{item.equipment_type}</td><td>{item.location}</td><td><span className="equipment-badge equipment-health-badge">Unknown</span></td><td className="equipment-muted">Not available</td><td><span className="equipment-table-status">{item.status}</span></td><td><Link className="equipment-details-btn" to={`/equipment/${item.id}`} aria-label={`View details for ${item.name}`}>View details <span aria-hidden="true">→</span></Link></td>
+            <td>{item.equipment_type}</td><td>{item.location}</td><td><span className="equipment-badge equipment-health-badge">Unknown</span></td><td className="equipment-muted">Not available</td><td><span className="equipment-table-status">{item.status}</span></td><td><div className="equipment-item-actions"><Link className="equipment-details-btn" to={`/equipment/${item.id}`} aria-label={`View details for ${item.name}`}>View details <span aria-hidden="true">→</span></Link>{deleteButton(item)}</div></td>
           </tr>)}</tbody></table></div> :
-          <div className="equipment-grid">{visible.map(item => <article className="equipment-card" key={item.id}><div className="equipment-card-top"><EquipmentIcon type={item.equipment_type} /><span className="equipment-badge active">{item.status}</span></div><h2><Link to={`/equipment/${item.id}`}>{item.name}</Link></h2><p className="equipment-muted">{item.identifier}</p><p>{item.equipment_type} · {item.location}</p><p>Health <span className="equipment-badge">Unknown</span></p><Link className="equipment-view-btn" to={`/equipment/${item.id}`}>View details →</Link></article>)}</div>}
+          <div className="equipment-grid">{visible.map(item => <article className="equipment-card" key={item.id}><div className="equipment-card-top"><EquipmentIcon type={item.equipment_type} /><span className="equipment-badge active">{item.status}</span></div><h2><Link to={`/equipment/${item.id}`}>{item.name}</Link></h2><p className="equipment-muted">{item.identifier}</p><p>{item.equipment_type} · {item.location}</p><p>Health <span className="equipment-badge">Unknown</span></p><div className="equipment-item-actions"><Link className="equipment-view-btn" to={`/equipment/${item.id}`}>View details →</Link>{deleteButton(item)}</div></article>)}</div>}
         <footer className="equipment-pagination"><span>{filtered.length ? `Showing ${(currentPage - 1) * 8 + 1}–${Math.min(currentPage * 8, filtered.length)} of ${filtered.length}` : "0 equipment"}</span><div><button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</button><button disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)}>Next</button></div></footer>
       </>}
     </div>
     {adding && <AddEquipmentModal onClose={closeModal} onSaved={saved} />}
+    {pendingDelete && <DeleteEquipmentModal item={pendingDelete} deleting={deleting !== null} error={deleteError} onClose={() => { if (deleting === null) setPendingDelete(null); }} onConfirm={() => removeEquipment(pendingDelete)} />}
   </EquipmentLayout>;
 }
