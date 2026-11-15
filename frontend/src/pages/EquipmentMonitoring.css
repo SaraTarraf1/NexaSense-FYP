@@ -1,0 +1,157 @@
+
+.monitoring-page {
+  padding: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+  color: #172b4d;
+}
+
+.monitoring-back {
+  display: inline-block;
+  margin-bottom: 24px;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.monitoring-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.monitoring-header h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+}
+
+.monitoring-header p {
+  color: #64748b;
+}
+
+.monitoring-overview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.monitoring-info-card,
+.monitoring-sensor-card,
+.monitoring-section {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.monitoring-info-card h2 {
+  color: #64748b;
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
+.monitoring-info-card strong {
+  font-size: 20px;
+  text-transform: capitalize;
+}
+
+.monitoring-section {
+  margin-bottom: 24px;
+}
+
+.monitoring-section h2 {
+  margin-top: 0;
+  margin-bottom: 22px;
+}
+
+.monitoring-sensor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.monitoring-sensor-card {
+  background: #f8fafc;
+}
+
+.monitoring-sensor-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.monitoring-sensor-heading h3 {
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.monitoring-sensor-value {
+  font-size: 30px;
+  font-weight: 700;
+  margin: 24px 0;
+}
+
+.monitoring-sensor-card p,
+.monitoring-footer {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.monitoring-badge {
+  display: inline-block;
+  padding: 7px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.monitoring-badge.current {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.monitoring-badge.stale {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.monitoring-badge.missing {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.monitoring-error {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.monitoring-footer {
+  margin-top: 24px;
+}
+
+@media (max-width: 900px) {
+  .monitoring-overview,
+  .monitoring-sensor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .monitoring-page {
+    padding: 20px;
+  }
+
+  .monitoring-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.monitoring-page.monitoring-embedded { padding: 0; max-width: none; }
+.monitoring-header h2 { margin: 0 0 8px; font-size: 24px; }

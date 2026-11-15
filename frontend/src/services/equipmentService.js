@@ -87,3 +87,11 @@ export async function updateEquipment(equipmentId, equipmentData) {
 export async function deleteEquipment(equipmentId) {
   return equipmentRequest(`/${equipmentId}`, { method: "DELETE" });
 }
+
+
+// GET /api/equipment/{equipment_id}/monitoring
+export async function getEquipmentMonitoring(equipmentId) {
+  return equipmentRequest(`/${equipmentId}/monitoring`, {
+    method: "GET",
+  });
+}

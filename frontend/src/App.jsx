@@ -17,7 +17,7 @@ import EquipmentDetails from "./pages/EquipmentDetails.jsx";
 import EditEquipment from "./pages/EditEquipment.jsx";
 import Inspections from "./pages/Inspections.jsx";
 import InspectionMonitoring from "./pages/InspectionMonitoring.jsx";
-
+import EquipmentMonitoring from "./pages/EquipmentMonitoring.jsx";
 
 function App() {
   return (
@@ -72,6 +72,10 @@ function App() {
           <Route
             path="/inspections/:inspectionId"
             element={<InspectionMonitoring />}
+          />
+          <Route
+            path="/equipment/:equipmentId/monitoring"
+            element={<EquipmentMonitoring />}
           />
         </Route>
         

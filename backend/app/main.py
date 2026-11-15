@@ -9,7 +9,7 @@ from app.api.equipment import router as equipment_router
 from app.api.inspections import router as inspections_router
 from app.api.sensor_readings import router as sensor_readings_router
 from app.services.sensor_scheduler import sensor_scheduler
-
+from app.api.equipment_monitoring import router as equipment_monitoring_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -47,6 +47,7 @@ app.include_router(auth_router)
 app.include_router(equipment_router)
 app.include_router(inspections_router)
 app.include_router(sensor_readings_router)
+app.include_router(equipment_monitoring_router)
 
 @app.get("/")
 def root():
