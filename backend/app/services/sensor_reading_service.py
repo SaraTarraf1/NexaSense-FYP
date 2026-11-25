@@ -6,6 +6,7 @@ from app.models.equipment import Equipment
 from app.models.inspection import Inspection
 from app.models.sensor import Sensor
 from app.models.sensor_reading import SensorReading
+from app.services.anomaly_detection_service import detect_anomaly
 from app.services.sensor_validation import validate_sensor_reading
 
 
@@ -15,15 +16,6 @@ def save_sensor_reading(
     sensor_type: str,
     value: float | None,
 ) -> SensorReading:
-    """
-    Validate and store one sensor reading.
-
-    The inspection determines the equipment association.
-    Invalid and missing readings are recorded but must not
-    be passed to the valid-data processing pipeline.
-
-    The caller controls the database transaction.
-    """
 
     inspection = db.get(Inspection, inspection_id)
 
@@ -52,6 +44,12 @@ def save_sensor_reading(
         raise ValueError(f"Active sensor not found: {sensor_type}")
 
     validation = validate_sensor_reading(sensor, value)
+    detection = detect_anomaly(
+        equipment_type=equipment.equipment_type,
+        sensor_type=sensor.sensor_type,
+        value=value,
+        validation_status=validation.status,
+    )
 
     reading = SensorReading(
         sensor_id=sensor.id,
@@ -62,6 +60,9 @@ def save_sensor_reading(
         unit=sensor.unit,
         validation_status=validation.status,
         validation_message=validation.message,
+        detection_status=detection.status,
+        anomaly_type=detection.anomaly_type,
+        detection_message=detection.message,
     )
 
     db.add(reading)

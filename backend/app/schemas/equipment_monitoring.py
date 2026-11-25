@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class MonitoringSensorResponse(BaseModel):
@@ -13,6 +13,16 @@ class MonitoringSensorResponse(BaseModel):
     validation_status: str | None = None
     status: Literal["current", "stale", "missing"]
     freshness_threshold_seconds: int
+
+
+class MonitoringAnomalyResponse(BaseModel):
+    reading_id: int
+    sensor_type: str
+    value: float
+    unit: str
+    timestamp: datetime
+    anomaly_type: Literal["above_threshold", "below_threshold"] | None
+    message: str | None
 
 
 class EquipmentMonitoringResponse(BaseModel):
@@ -26,6 +36,6 @@ class EquipmentMonitoringResponse(BaseModel):
     is_live: bool
     sensors: list[MonitoringSensorResponse]
     last_valid_reading_at: datetime | None = None
-    anomalies: list = []
+    anomalies: list[MonitoringAnomalyResponse] = Field(default_factory=list)
     faults: list = []
     health_status: str = "not_evaluated"

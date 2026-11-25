@@ -23,6 +23,10 @@ class SensorReading(Base):
             "validation_status IN ('valid', 'invalid', 'missing')",
             name="ck_sensor_reading_validation_status",
         ),
+        CheckConstraint(
+            "detection_status IN ('normal', 'anomaly', 'not_evaluated')",
+            name="ck_sensor_reading_detection_status",
+        ),
     )
 
     id: Mapped[int] = mapped_column(
@@ -77,3 +81,12 @@ class SensorReading(Base):
         String(255),
         nullable=True,
     )
+
+    detection_status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        server_default="not_evaluated",
+    )
+
+    anomaly_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    detection_message: Mapped[str | None] = mapped_column(String(255), nullable=True)
