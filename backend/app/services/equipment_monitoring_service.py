@@ -13,6 +13,9 @@ from app.services.sensor_configuration import (
 )
 
 
+RECENT_ANOMALY_LIMIT = 50
+
+
 def get_equipment_monitoring(
     db: Session,
     equipment: Equipment,
@@ -145,6 +148,32 @@ def get_equipment_monitoring(
         if item["timestamp"] is not None
     ]
 
+    anomalies = []
+    if is_live:
+        anomaly_rows = db.execute(
+            select(SensorReading, Sensor.sensor_type)
+            .join(Sensor, Sensor.id == SensorReading.sensor_id)
+            .where(
+                SensorReading.equipment_id == equipment.id,
+                SensorReading.inspection_id == inspection.id,
+                SensorReading.detection_status == "anomaly",
+            )
+            .order_by(SensorReading.timestamp.desc(), SensorReading.id.desc())
+            .limit(RECENT_ANOMALY_LIMIT)
+        )
+        anomalies = [
+            {
+                "reading_id": reading.id,
+                "sensor_type": sensor_type,
+                "value": reading.value,
+                "unit": reading.unit,
+                "timestamp": reading.timestamp,
+                "anomaly_type": reading.anomaly_type,
+                "message": reading.detection_message,
+            }
+            for reading, sensor_type in anomaly_rows
+        ]
+
     return {
         "equipment_id": equipment.id,
         "equipment_name": equipment.name,
@@ -162,7 +191,7 @@ def get_equipment_monitoring(
         "last_valid_reading_at": (
             max(timestamps) if timestamps else None
         ),
-        "anomalies": [],
+        "anomalies": anomalies,
         "faults": [],
         "health_status": "not_evaluated",
     }

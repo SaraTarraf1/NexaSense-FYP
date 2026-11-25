@@ -148,11 +148,36 @@ export function EquipmentMonitoringPanel({ equipmentId }) {
                   : monitoring.health_status}
               </p>
 
-              <p>
-                Anomalies: {monitoring.anomalies.length}
-                {" · "}
-                Faults: {monitoring.faults.length}
-              </p>
+              <p>Faults: {monitoring.faults.length}</p>
+            </section>
+
+            <section className="monitoring-section">
+              <h2>Recent anomalies ({monitoring.anomalies.length})</h2>
+
+              {monitoring.anomalies.length > 0 ? (
+                <ul className="monitoring-anomaly-list" role="list">
+                  {monitoring.anomalies.map((anomaly) => (
+                    <li className="monitoring-anomaly" key={anomaly.reading_id}>
+                      <div className="monitoring-anomaly-heading">
+                        <div>
+                          <h3>{anomaly.sensor_type}</h3>
+                          <strong>{anomaly.value} {anomaly.unit}</strong>
+                        </div>
+                        <time dateTime={anomaly.timestamp}>
+                          {formatDate(anomaly.timestamp)}
+                        </time>
+                      </div>
+                      <p>{anomaly.message || "Reading outside the configured operating range."}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>
+                  {monitoring.is_live
+                    ? "No anomalies recorded for this inspection yet."
+                    : "Start an inspection to see recent anomalies."}
+                </p>
+              )}
             </section>
 
             <footer className="monitoring-footer">
