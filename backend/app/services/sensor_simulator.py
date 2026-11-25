@@ -1,10 +1,16 @@
-
 import random
 from dataclasses import dataclass
 from typing import Literal
 
 
-SimulationMode = Literal["normal", "abnormal", "invalid", "missing"]
+SimulationMode = Literal[
+    "normal",
+    "abnormal",
+    "invalid",
+    "missing",
+    "unknown",
+    "undetermined",
+]
 
 
 @dataclass(frozen=True)
@@ -14,7 +20,6 @@ class SimulatedMeasurement:
 
 
 # Developer-controlled simulation settings.
-# Normal mode is the default.
 SIMULATION_MODE: SimulationMode = "normal"
 
 
@@ -36,26 +41,37 @@ def simulate_sensor_reading(
     sensor_type: str,
     mode: SimulationMode | None = None,
 ) -> SimulatedMeasurement:
-    """
-    Generate a simulated sensor measurement.
-
-    Simulation modes:
-    - normal: realistic operating values
-    - abnormal: unusual but physically measurable values
-    - invalid: deliberately out-of-range measurement
-    - missing: no measurement received
-
-    Abnormal measurements are not automatically invalid.
-    Fault detection is handled by later features.
-    """
 
     selected_mode = mode or SIMULATION_MODE
 
     if sensor_type not in NORMAL_RANGES:
-        raise ValueError(f"Unsupported sensor type: {sensor_type}")
+        raise ValueError(
+            f"Unsupported sensor type: {sensor_type}"
+        )
+
+    # Test Unknown classification:
+    # Temperature is abnormal, supporting sensors are normal.
+    if selected_mode == "unknown":
+        selected_mode = (
+            "abnormal"
+            if sensor_type == "temperature"
+            else "normal"
+        )
+
+    # Test Undetermined classification:
+    # Temperature is abnormal, supporting sensors are missing.
+    elif selected_mode == "undetermined":
+        selected_mode = (
+            "abnormal"
+            if sensor_type == "temperature"
+            else "missing"
+        )
 
     if selected_mode == "missing":
-        return SimulatedMeasurement(value=None, mode="missing")
+        return SimulatedMeasurement(
+            value=None,
+            mode="missing",
+        )
 
     if selected_mode == "invalid":
         invalid_values = {
@@ -76,7 +92,9 @@ def simulate_sensor_reading(
         minimum, maximum = ABNORMAL_RANGES[sensor_type]
 
     else:
-        raise ValueError(f"Unsupported simulation mode: {selected_mode}")
+        raise ValueError(
+            f"Unsupported simulation mode: {selected_mode}"
+        )
 
     value = round(random.uniform(minimum, maximum), 2)
 

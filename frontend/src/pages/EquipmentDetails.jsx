@@ -85,11 +85,6 @@ export default function EquipmentDetails() {
     <div className="eq-chart-empty"><div><span className={`eq-chart-unit ${sensor.color}`}>{sensor.unit}</span><strong>No {sensor.name.toLowerCase()} history yet</strong><p>Valid readings from inspections will appear here.</p></div></div>
     {tab !== "sensors" && <button className="eq-text-link" onClick={() => setTab("sensors")}>Open full sensor history <span aria-hidden="true">→</span></button>}
   </section>;
-  const faults = <section className="eq-detail-card eq-fault-card">
-    <div className="eq-card-heading"><h2>Latest fault</h2><span className="eq-status-tag">Unassessed</span></div>
-    <div className="eq-fault-title"><span><Icon name="health" /></span><div><h3>No assessment available</h3><p>A fault classification requires valid inspection readings.</p></div></div>
-    <div className="eq-action-note"><Icon name="tool" /><p>Suggested actions will appear after a fault is identified.</p></div>
-  </section>;
   const healthHistory = <section className="eq-detail-card eq-health-history">
     <div className="eq-card-heading"><h2>Health history</h2><span>Last 7 days</span></div>
     <div className="eq-history-blocks" aria-label="No health assessments in the last 7 days">{Array.from({ length: 7 }, (_, index) => <span key={index} />)}</div>
@@ -122,7 +117,12 @@ export default function EquipmentDetails() {
         <div id="eq-detail-panel" role="tabpanel" aria-labelledby={`eq-tab-${tab}`} tabIndex={0}>
           {tab === "overview" && <EquipmentMonitoringPanel key={equipment.id} equipmentId={equipment.id} />}
           {tab === "sensors" && <><SensorCards /><div className="eq-history-full">{trend}</div></>}
-          {tab === "health" && <div className="eq-health-grid">{faults}{healthHistory}</div>}
+          {tab === "health" && (
+            <div className="eq-health-grid">
+              <EquipmentMonitoringPanel key={equipment.id} equipmentId={equipment.id} faultsOnly />
+              {healthHistory}
+            </div>
+          )}
           {tab === "inspections" && <section className="eq-detail-card"><h2>Inspections</h2><EmptyState title="Inspection history is unavailable">Inspections for this equipment will appear when the inspection service is connected.</EmptyState></section>}
           {tab === "alerts" && <section className="eq-detail-card"><h2>Equipment alerts</h2><EmptyState title="Alert data is unavailable">Alerts will appear when monitoring and health assessments are connected.</EmptyState></section>}
           {tab === "profile" && <section className="eq-detail-card"><div className="eq-card-heading"><h2>Equipment profile</h2><Link className="eq-text-link" to={`/equipment/${equipment.id}/edit`}>Edit profile →</Link></div><dl className="equipment-details-grid">{[["Identifier", equipment.identifier], ["Name", equipment.name], ["Type", equipment.equipment_type], ["Location", equipment.location], ["Manufacturer", equipment.manufacturer], ["Model", equipment.model], ["Serial number", equipment.serial_number], ["Status", equipment.status], ["Installation date", formatDate(equipment.installation_date, true)], ["Registered on", formatDate(equipment.created_at)], ["Last updated", formatDate(equipment.updated_at)]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "Not specified"}</dd></div>)}</dl><div className="equipment-details-description"><span>Notes</span><p>{equipment.description || "No notes provided."}</p></div></section>}

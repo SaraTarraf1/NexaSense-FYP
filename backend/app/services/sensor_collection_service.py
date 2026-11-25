@@ -1,14 +1,20 @@
 
+import logging
 from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.equipment import Equipment
+from app.models.fault_classification import FaultClassification
 from app.models.inspection import Inspection
 from app.models.sensor import Sensor
 from app.models.sensor_reading import SensorReading
 
+from app.services.fault_classification_service import (
+    SUPPORTING_READING_WINDOW,
+    classify_fault,
+)
 from app.services.sensor_configuration import (
     get_required_sensor_types,
 )
@@ -18,6 +24,9 @@ from app.services.sensor_simulator import (
 from app.services.sensor_reading_service import (
     save_sensor_reading,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def collect_inspection_readings(
@@ -97,4 +106,64 @@ def collect_inspection_readings(
 
         collected.append(reading)
 
+    _record_fault_classifications(
+        db,
+        equipment.equipment_type,
+        collected,
+        {sensor.id: sensor.sensor_type for sensor in sensors},
+    )
     return collected
+
+
+def _record_fault_classifications(
+    db: Session,
+    equipment_type: str,
+    collected: list[SensorReading],
+    sensor_types: dict[int, str],
+) -> None:
+    anomalies = [reading for reading in collected if reading.detection_status == "anomaly"]
+    if not anomalies:
+        return
+
+    first_timestamp = min(reading.timestamp for reading in anomalies)
+    last_timestamp = max(reading.timestamp for reading in collected)
+    evidence_rows = db.execute(
+        select(Sensor.sensor_type, SensorReading)
+        .join(Sensor, Sensor.id == SensorReading.sensor_id)
+        .where(
+            SensorReading.equipment_id == anomalies[0].equipment_id,
+            SensorReading.inspection_id == anomalies[0].inspection_id,
+            SensorReading.validation_status == "valid",
+            SensorReading.timestamp.between(
+                first_timestamp - SUPPORTING_READING_WINDOW, last_timestamp
+            ),
+        )
+    )
+    evidence = [(kind, candidate) for kind, candidate in evidence_rows]
+
+    for reading in anomalies:
+        result = classify_fault(
+            equipment_type, sensor_types[reading.sensor_id], reading, evidence
+        )
+        if result.status in ("skipped", "data_error"):
+            logger.warning(
+                "Could not classify anomaly reading %s: %s", reading.id, result.message
+            )
+            continue
+
+        db.add(
+            FaultClassification(
+                source_reading_id=reading.id,
+                status=result.status,
+                message=result.message,
+                matches=[
+                    {
+                        "rule_id": match.rule_id,
+                        "fault_type": match.fault_type,
+                        "evidence_reading_ids": list(match.evidence_reading_ids),
+                    }
+                    for match in result.matches
+                ],
+                missing_sensor_types=list(result.missing_sensor_types),
+            )
+        )

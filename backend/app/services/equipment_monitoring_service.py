@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.equipment import Equipment
+from app.models.fault_classification import FaultClassification
 from app.models.inspection import Inspection
 from app.models.sensor import Sensor
 from app.models.sensor_reading import SensorReading
@@ -14,6 +15,7 @@ from app.services.sensor_configuration import (
 
 
 RECENT_ANOMALY_LIMIT = 50
+RECENT_FAULT_LIMIT = 50
 
 
 def get_equipment_monitoring(
@@ -163,11 +165,7 @@ def get_equipment_monitoring(
         )
         anomalies = [
             {
-                "reading_id": reading.id,
-                "sensor_type": sensor_type,
-                "value": reading.value,
-                "unit": reading.unit,
-                "timestamp": reading.timestamp,
+                **_reading_details(reading, sensor_type),
                 "anomaly_type": reading.anomaly_type,
                 "message": reading.detection_message,
             }
@@ -192,6 +190,74 @@ def get_equipment_monitoring(
             max(timestamps) if timestamps else None
         ),
         "anomalies": anomalies,
-        "faults": [],
+        "faults": (
+            _get_inspection_faults(db, equipment.id, inspection.id) if inspection else []
+        ),
         "health_status": "not_evaluated",
     }
+
+
+def _reading_details(reading: SensorReading, sensor_type: str) -> dict:
+    return {
+        "reading_id": reading.id,
+        "sensor_type": sensor_type,
+        "value": reading.value,
+        "unit": reading.unit,
+        "timestamp": reading.timestamp,
+    }
+
+
+def _get_inspection_faults(db: Session, equipment_id: int, inspection_id: int) -> list[dict]:
+    rows = db.execute(
+        select(FaultClassification, SensorReading, Sensor.sensor_type)
+        .join(SensorReading, SensorReading.id == FaultClassification.source_reading_id)
+        .join(Sensor, Sensor.id == SensorReading.sensor_id)
+        .where(
+            SensorReading.equipment_id == equipment_id,
+            SensorReading.inspection_id == inspection_id,
+        )
+        .order_by(SensorReading.timestamp.desc(), SensorReading.id.desc())
+        .limit(RECENT_FAULT_LIMIT)
+    ).all()
+    evidence_ids = {
+        reading_id
+        for fault, _, _ in rows
+        for match in fault.matches
+        for reading_id in match["evidence_reading_ids"]
+    }
+    evidence = {}
+    if evidence_ids:
+        evidence_rows = db.execute(
+            select(SensorReading, Sensor.sensor_type)
+            .join(Sensor, Sensor.id == SensorReading.sensor_id)
+            .where(
+                SensorReading.id.in_(evidence_ids),
+                SensorReading.equipment_id == equipment_id,
+                SensorReading.inspection_id == inspection_id,
+            )
+        )
+        evidence = {
+            reading.id: _reading_details(reading, sensor_type)
+            for reading, sensor_type in evidence_rows
+        }
+
+    return [
+        {
+            "source_reading": _reading_details(reading, sensor_type),
+            "status": fault.status,
+            "message": fault.message,
+            "matches": [
+                {
+                    **match,
+                    "evidence": [
+                        evidence[reading_id]
+                        for reading_id in match["evidence_reading_ids"]
+                        if reading_id in evidence
+                    ],
+                }
+                for match in fault.matches
+            ],
+            "missing_sensor_types": fault.missing_sensor_types,
+        }
+        for fault, reading, sensor_type in rows
+    ]

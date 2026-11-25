@@ -12,6 +12,7 @@ from app.models.equipment import Equipment
 from app.models.inspection import Inspection
 from app.models.sensor import Sensor
 from app.models.sensor_reading import SensorReading
+from app.models.fault_classification import FaultClassification
 
 __all__ = [
     "User",
@@ -20,4 +21,5 @@ __all__ = [
     "Inspection",
     "Sensor",
     "SensorReading",
+    "FaultClassification",
 ]

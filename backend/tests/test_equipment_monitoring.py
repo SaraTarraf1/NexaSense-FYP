@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from types import SimpleNamespace
 
 from fastapi import FastAPI
@@ -10,13 +11,15 @@ from app.api.auth import get_current_user, get_db
 from app.api.equipment_monitoring import router
 from app.core.database import Base
 from app.models.equipment import Equipment
+from app.models.fault_classification import FaultClassification
 from app.models.inspection import Inspection
 from app.models.sensor import Sensor
 from app.services.sensor_configuration import SENSOR_DEFINITIONS
 from app.services.sensor_reading_service import save_sensor_reading
 
 
-def test_monitoring_returns_recent_anomalies_for_the_active_inspection():
+@contextmanager
+def monitoring_client():
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -29,6 +32,13 @@ def test_monitoring_returns_recent_anomalies_for_the_active_inspection():
 
     with Session(engine) as db, TestClient(app) as client:
         app.dependency_overrides[get_db] = lambda: db
+        yield db, client
+
+    engine.dispose()
+
+
+def test_monitoring_returns_recent_anomalies_for_the_active_inspection():
+    with monitoring_client() as (db, client):
         equipment = Equipment(
             user_id=1,
             identifier="AC1",
@@ -80,4 +90,92 @@ def test_monitoring_returns_recent_anomalies_for_the_active_inspection():
         assert response.status_code == 200
         assert response.json()["anomalies"] == []
 
-    engine.dispose()
+
+def test_monitoring_surfaces_fault_evidence_for_the_latest_inspection():
+    with monitoring_client() as (db, client):
+        equipment = Equipment(
+            user_id=1,
+            identifier="AC1",
+            name="Server Room AC",
+            equipment_type="Air conditioner",
+            location="Server Room",
+        )
+        db.add(equipment)
+        db.add_all([
+            Sensor(sensor_type="temperature", **SENSOR_DEFINITIONS["temperature"]),
+            Sensor(sensor_type="thermal", **SENSOR_DEFINITIONS["thermal"]),
+        ])
+        db.flush()
+
+        previous = Inspection(equipment_id=equipment.id, user_id=1)
+        db.add(previous)
+        db.flush()
+        previous_reading = save_sensor_reading(db, previous.id, "temperature", 100.0)
+        db.add(FaultClassification(
+            source_reading_id=previous_reading.id,
+            status="unknown",
+            message="No diagnostic rule matched.",
+            matches=[],
+            missing_sensor_types=[],
+        ))
+        previous.status = "completed"
+
+        latest = Inspection(equipment_id=equipment.id, user_id=1)
+        db.add(latest)
+        db.flush()
+        temperature = save_sensor_reading(db, latest.id, "temperature", 90.0)
+        thermal = save_sensor_reading(db, latest.id, "thermal", 145.0)
+        later_anomaly = save_sensor_reading(db, latest.id, "temperature", 80.0)
+        db.add_all([
+            FaultClassification(
+                source_reading_id=temperature.id,
+                status="identified",
+                message="Sensor readings match a rule.",
+                matches=[{
+                    "rule_id": "DR-001",
+                    "fault_type": "overheating",
+                    "evidence_reading_ids": [temperature.id, thermal.id],
+                }],
+                missing_sensor_types=[],
+            ),
+            FaultClassification(
+                source_reading_id=later_anomaly.id,
+                status="undetermined",
+                message="Recent supporting readings are missing.",
+                matches=[],
+                missing_sensor_types=["thermal"],
+            ),
+        ])
+        db.flush()
+
+        endpoint = f"/api/equipment/{equipment.id}/monitoring"
+        response = client.get(endpoint)
+        assert response.status_code == 200
+        assert response.json()["is_live"] is True
+        faults = response.json()["faults"]
+        assert [fault["status"] for fault in faults] == ["undetermined", "identified"]
+        assert faults[0]["source_reading"]["reading_id"] == later_anomaly.id
+        assert faults[0]["missing_sensor_types"] == ["thermal"]
+        match = faults[1]["matches"][0]
+        assert match["rule_id"] == "DR-001"
+        assert match["fault_type"] == "overheating"
+        assert match["evidence_reading_ids"] == [temperature.id, thermal.id]
+        assert [
+            (item["sensor_type"], item["value"], item["unit"])
+            for item in match["evidence"]
+        ] == [("temperature", 90.0, temperature.unit), ("thermal", 145.0, thermal.unit)]
+
+        latest.status = "completed"
+        db.flush()
+        response = client.get(endpoint)
+        assert response.status_code == 200
+        assert response.json()["is_live"] is False
+        assert response.json()["faults"] == faults
+
+        new_inspection = Inspection(equipment_id=equipment.id, user_id=1)
+        db.add(new_inspection)
+        db.flush()
+        response = client.get(endpoint)
+        assert response.status_code == 200
+        assert response.json()["inspection_id"] == new_inspection.id
+        assert response.json()["faults"] == []
