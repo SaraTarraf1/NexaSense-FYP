@@ -140,6 +140,76 @@
   color: #78350f;
 }
 
+.monitoring-fault-section h2 {
+  margin-bottom: 8px;
+}
+
+.monitoring-fault-context {
+  margin: 0 0 16px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.monitoring-fault-list,
+.monitoring-fault-evidence {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.monitoring-fault {
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.monitoring-fault-heading,
+.monitoring-fault-evidence li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.monitoring-fault-heading h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.monitoring-fault p {
+  margin: 8px 0 0;
+}
+
+.monitoring-fault-meta {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.monitoring-fault-evidence {
+  border-top: 1px solid #e2e8f0;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.monitoring-fault-more {
+  margin-top: 14px;
+}
+
+.monitoring-fault-more > summary {
+  cursor: pointer;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.monitoring-fault-more .monitoring-fault-list {
+  margin-top: 12px;
+}
+
 .monitoring-badge {
   display: inline-block;
   padding: 7px 12px;
@@ -162,6 +232,21 @@
 .monitoring-badge.missing {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.monitoring-badge.fault-identified {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.monitoring-badge.fault-unknown {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.monitoring-badge.fault-undetermined {
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .monitoring-error {

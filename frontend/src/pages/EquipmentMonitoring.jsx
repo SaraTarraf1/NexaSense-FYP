@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 
+import FaultClassifications from "../components/FaultClassifications";
 import { getEquipmentMonitoring } from "../services/equipmentService";
 import "./EquipmentMonitoring.css";
 
@@ -9,7 +10,7 @@ function formatDate(value) {
   return value ? new Date(value).toLocaleString() : "Not available";
 }
 
-export function EquipmentMonitoringPanel({ equipmentId }) {
+export function EquipmentMonitoringPanel({ equipmentId, faultsOnly = false }) {
 
 
   const [monitoring, setMonitoring] = useState(null);
@@ -52,7 +53,10 @@ export function EquipmentMonitoringPanel({ equipmentId }) {
   }, [equipmentId]);
 
   return (
-    <section className="monitoring-page monitoring-embedded" aria-label="Equipment monitoring">
+    <section
+      className="monitoring-page monitoring-embedded"
+      aria-label={faultsOnly ? "Equipment faults" : "Equipment monitoring"}
+    >
         {loading && <p role="status">Loading monitoring data...</p>}
 
         {error && (
@@ -61,7 +65,9 @@ export function EquipmentMonitoringPanel({ equipmentId }) {
           </div>
         )}
 
-        {monitoring && (
+        {monitoring && faultsOnly && <FaultClassifications monitoring={monitoring} />}
+
+        {monitoring && !faultsOnly && (
           <>
             <header className="monitoring-header">
               <div>
@@ -140,18 +146,6 @@ export function EquipmentMonitoringPanel({ equipmentId }) {
             </section>
 
             <section className="monitoring-section">
-              <h2>Equipment Health</h2>
-
-              <p>
-                {monitoring.health_status === "not_evaluated"
-                  ? "Health analysis is not available yet."
-                  : monitoring.health_status}
-              </p>
-
-              <p>Faults: {monitoring.faults.length}</p>
-            </section>
-
-            <section className="monitoring-section">
               <h2>Recent anomalies ({monitoring.anomalies.length})</h2>
 
               {monitoring.anomalies.length > 0 ? (
@@ -179,6 +173,8 @@ export function EquipmentMonitoringPanel({ equipmentId }) {
                 </p>
               )}
             </section>
+
+            <FaultClassifications monitoring={monitoring} />
 
             <footer className="monitoring-footer">
               <p>
