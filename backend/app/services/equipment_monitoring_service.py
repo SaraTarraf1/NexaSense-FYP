@@ -1,4 +1,3 @@
-
 from datetime import datetime, timezone
 
 from sqlalchemy import select
@@ -63,18 +62,24 @@ def get_equipment_monitoring(
         latest_valid = None
 
         if sensor is not None:
-            latest_valid = db.scalar(
-                select(SensorReading)
-                .where(
-                    SensorReading.equipment_id == equipment.id,
-                    SensorReading.sensor_id == sensor.id,
-                    SensorReading.validation_status == "valid",
+            query = select(SensorReading).where(
+                SensorReading.equipment_id == equipment.id,
+                SensorReading.sensor_id == sensor.id,
+                SensorReading.validation_status == "valid",
+            )
+
+            # During live monitoring, only use readings
+            # belonging to the current active inspection.
+            if is_live:
+                query = query.where(
+                    SensorReading.inspection_id == inspection.id
                 )
-                .order_by(
+
+            latest_valid = db.scalar(
+                query.order_by(
                     SensorReading.timestamp.desc(),
                     SensorReading.id.desc(),
-                )
-                .limit(1)
+                ).limit(1)
             )
 
         if latest_valid is None:
