@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import EquipmentLayout from "../components/EquipmentLayout";
+import { HealthStatusBadge } from "../components/EquipmentHealthAssessment";
+import { HEALTH_LABELS } from "../utils/healthStatus";
 import AddEquipmentModal from "../components/AddEquipmentModal";
 import DeleteEquipmentModal from "../components/DeleteEquipmentModal";
 
@@ -49,6 +51,15 @@ function EquipmentIcon({ type }) {
         )}
       </svg>
     </span>
+  );
+}
+
+function LastInspection({ timestamp }) {
+  if (!timestamp) return "No inspection yet";
+  return (
+    <time dateTime={timestamp}>
+      {new Date(timestamp).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+    </time>
   );
 }
 
@@ -185,7 +196,7 @@ export default function Equipment({ defaultAddOpen = false }) {
         ) &&
         (!type || item.equipment_type === type) &&
         (!location || item.location === location) &&
-        (!health || health === "unknown") &&
+        (!health || (item.health_status ?? "not_evaluated") === health) &&
         (!status || item.status === status)
     )
     .sort((a, b) =>
@@ -295,7 +306,9 @@ export default function Equipment({ defaultAddOpen = false }) {
               onChange={(e) => filter(setHealth, e.target.value)}
             >
               <option value="">Any</option>
-              <option value="unknown">Unknown</option>
+              {Object.entries(HEALTH_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
             </select>
           </label>
 
@@ -432,13 +445,11 @@ export default function Equipment({ defaultAddOpen = false }) {
                         <td>{item.location}</td>
 
                         <td>
-                          <span className="equipment-badge equipment-health-badge">
-                            Unknown
-                          </span>
+                          <HealthStatusBadge status={item.health_status} />
                         </td>
 
                         <td className="equipment-muted">
-                          Not available
+                          <LastInspection timestamp={item.last_inspection_at} />
                         </td>
 
                         <td>
@@ -500,9 +511,10 @@ export default function Equipment({ defaultAddOpen = false }) {
 
                     <p>
                       Health{" "}
-                      <span className="equipment-badge">
-                        Unknown
-                      </span>
+                      <HealthStatusBadge status={item.health_status} />
+                    </p>
+                    <p className="equipment-muted">
+                      Last inspection · <LastInspection timestamp={item.last_inspection_at} />
                     </p>
 
                     <div className="equipment-item-actions">

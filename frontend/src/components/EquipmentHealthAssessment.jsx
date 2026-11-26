@@ -1,13 +1,6 @@
+import { HEALTH_LABELS } from "../utils/healthStatus";
 import { sensorLabel } from "../utils/sensorLabels";
 import "./EquipmentHealth.css";
-
-const HEALTH_LABELS = {
-  normal: "Normal",
-  warning: "Warning",
-  critical: "Critical",
-  insufficient_data: "Insufficient data",
-  not_evaluated: "Not evaluated",
-};
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "medium" });
 

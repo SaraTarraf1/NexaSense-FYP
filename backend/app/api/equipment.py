@@ -8,9 +8,12 @@ from app.api.auth import get_current_user
 from app.core.database import SessionLocal
 from app.core.equipment_identifiers import next_identifier
 from app.models.equipment import Equipment
+from app.models.equipment_health_assessment import EquipmentHealthAssessment
+from app.models.inspection import Inspection
 from app.models.user import User
 from app.schemas.equipment import (
     EquipmentCreate,
+    EquipmentListResponse,
     EquipmentUpdate,
     EquipmentResponse,
 )
@@ -81,19 +84,48 @@ def register_equipment(
 
 @router.get(
     "",
-    response_model=list[EquipmentResponse],
+    response_model=list[EquipmentListResponse],
 )
 def list_equipment(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    statement = (
-        select(Equipment)
+    latest_inspection_id = (
+        select(Inspection.id)
+        .where(Inspection.equipment_id == Equipment.id)
+        .order_by(Inspection.started_at.desc(), Inspection.id.desc())
+        .limit(1)
+        .correlate(Equipment)
+        .scalar_subquery()
+    )
+    latest_assessment_id = (
+        select(EquipmentHealthAssessment.id)
+        .where(
+            EquipmentHealthAssessment.equipment_id == Equipment.id,
+            EquipmentHealthAssessment.inspection_id == Inspection.id,
+        )
+        .order_by(EquipmentHealthAssessment.assessed_at.desc(), EquipmentHealthAssessment.id.desc())
+        .limit(1)
+        .correlate(Equipment, Inspection)
+        .scalar_subquery()
+    )
+    rows = db.execute(
+        select(Equipment, EquipmentHealthAssessment.status, Inspection.started_at)
+        .select_from(Equipment)
+        .outerjoin(Inspection, Inspection.id == latest_inspection_id)
+        .outerjoin(EquipmentHealthAssessment, EquipmentHealthAssessment.id == latest_assessment_id)
         .where(Equipment.user_id == current_user.id)
         .order_by(Equipment.id.desc())
     )
 
-    return db.scalars(statement).all()
+    return [
+        EquipmentListResponse(
+            **EquipmentResponse.model_validate(equipment).model_dump(),
+            health_status=health_status or "not_evaluated",
+            last_inspection_at=last_inspection_at,
+        )
+        for equipment, health_status, last_inspection_at in rows
+    ]
 
 
 @router.get(

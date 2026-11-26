@@ -1,8 +1,11 @@
 
 from datetime import date, datetime
 import re
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.services.health_assessment_service import HealthStatus
 
 
 class EquipmentBase(BaseModel):
@@ -120,3 +123,8 @@ class EquipmentResponse(EquipmentBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class EquipmentListResponse(EquipmentResponse):
+    health_status: HealthStatus | Literal["not_evaluated"] = "not_evaluated"
+    last_inspection_at: datetime | None = None
