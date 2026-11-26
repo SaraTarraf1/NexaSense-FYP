@@ -1,18 +1,10 @@
-const SENSOR_LABELS = {
-  temperature: "Temperature",
-  thermal: "Thermal temperature",
-  vibration: "Vibration",
-};
+import { sensorLabel } from "../utils/sensorLabels";
 
 const FAULT_STATUS = {
   identified: { label: "Rule matched" },
   unknown: { label: "Unknown", title: "No matching rule" },
   undetermined: { label: "Undetermined", title: "More evidence needed" },
 };
-
-function sensorLabel(sensorType) {
-  return SENSOR_LABELS[sensorType] || sensorType;
-}
 
 function getFaultEntries(faults) {
   const displayedMatches = new Set();

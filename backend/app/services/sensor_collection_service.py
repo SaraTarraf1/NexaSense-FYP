@@ -11,6 +11,7 @@ from app.models.inspection import Inspection
 from app.models.sensor import Sensor
 from app.models.sensor_reading import SensorReading
 
+from app.services.alert_service import record_collection_alerts
 from app.services.fault_classification_service import (
     SUPPORTING_READING_WINDOW,
     classify_fault,
@@ -86,6 +87,8 @@ def collect_inspection_readings(
         )
 
         if latest_timestamp is not None:
+            if latest_timestamp.tzinfo is None:
+                latest_timestamp = latest_timestamp.replace(tzinfo=timezone.utc)
             elapsed = (
                 now - latest_timestamp
             ).total_seconds()
@@ -106,11 +109,18 @@ def collect_inspection_readings(
 
         collected.append(reading)
 
-    _record_fault_classifications(
+    sensor_types = {sensor.id: sensor.sensor_type for sensor in sensors}
+    classifications = _record_fault_classifications(
+        db, equipment.equipment_type, collected, sensor_types
+    )
+    record_collection_alerts(
         db,
-        equipment.equipment_type,
-        collected,
-        {sensor.id: sensor.sensor_type for sensor in sensors},
+        equipment=equipment,
+        inspection=inspection,
+        readings=collected,
+        sensor_types=sensor_types,
+        classifications=classifications,
+        now=now,
     )
     return collected
 
@@ -120,10 +130,10 @@ def _record_fault_classifications(
     equipment_type: str,
     collected: list[SensorReading],
     sensor_types: dict[int, str],
-) -> None:
+) -> list[FaultClassification]:
     anomalies = [reading for reading in collected if reading.detection_status == "anomaly"]
     if not anomalies:
-        return
+        return []
 
     first_timestamp = min(reading.timestamp for reading in anomalies)
     last_timestamp = max(reading.timestamp for reading in collected)
@@ -141,6 +151,7 @@ def _record_fault_classifications(
     )
     evidence = [(kind, candidate) for kind, candidate in evidence_rows]
 
+    classifications = []
     for reading in anomalies:
         result = classify_fault(
             equipment_type, sensor_types[reading.sensor_id], reading, evidence
@@ -151,19 +162,21 @@ def _record_fault_classifications(
             )
             continue
 
-        db.add(
-            FaultClassification(
-                source_reading_id=reading.id,
-                status=result.status,
-                message=result.message,
-                matches=[
-                    {
-                        "rule_id": match.rule_id,
-                        "fault_type": match.fault_type,
-                        "evidence_reading_ids": list(match.evidence_reading_ids),
-                    }
-                    for match in result.matches
-                ],
-                missing_sensor_types=list(result.missing_sensor_types),
-            )
+        classification = FaultClassification(
+            source_reading_id=reading.id,
+            status=result.status,
+            message=result.message,
+            matches=[
+                {
+                    "rule_id": match.rule_id,
+                    "fault_type": match.fault_type,
+                    "evidence_reading_ids": list(match.evidence_reading_ids),
+                }
+                for match in result.matches
+            ],
+            missing_sensor_types=list(result.missing_sensor_types),
         )
+        db.add(classification)
+        classifications.append(classification)
+
+    return classifications

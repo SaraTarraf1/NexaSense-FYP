@@ -1,9 +1,16 @@
 from datetime import datetime
+from typing import TypedDict
 
 from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+
+
+class StoredFaultMatch(TypedDict):
+    rule_id: str
+    fault_type: str
+    evidence_reading_ids: list[int]
 
 
 class FaultClassification(Base):
@@ -22,7 +29,7 @@ class FaultClassification(Base):
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False)
     message: Mapped[str] = mapped_column(String(255), nullable=False)
-    matches: Mapped[list[dict[str, str | list[int]]]] = mapped_column(JSON, nullable=False)
+    matches: Mapped[list[StoredFaultMatch]] = mapped_column(JSON, nullable=False)
     missing_sensor_types: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     classified_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
