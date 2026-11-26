@@ -92,7 +92,7 @@ def list_equipment(
 ):
     latest_inspection_id = (
         select(Inspection.id)
-        .where(Inspection.equipment_id == Equipment.id)
+        .where(Inspection.equipment_id == Equipment.id, Inspection.started_at.is_not(None))
         .order_by(Inspection.started_at.desc(), Inspection.id.desc())
         .limit(1)
         .correlate(Equipment)

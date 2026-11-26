@@ -21,6 +21,13 @@
   color: #2563eb !important;
 }
 
+.inspections-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px;
+}
+
 .inspections-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -49,13 +56,24 @@
   font-weight: 600;
 }
 
-.inspections-card select {
+.inspections-card select,
+.inspections-card input,
+.inspections-card textarea {
   width: 100%;
   padding: 12px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   background: white;
   color: #0f172a;
+  font: inherit;
+}
+
+.inspections-card textarea {
+  resize: vertical;
+}
+
+.inspections-card form small {
+  color: #475569;
 }
 
 .inspections-card button {
@@ -71,6 +89,23 @@
 .inspections-card button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.inspections-success {
+  background: #ecfdf5;
+  color: #166534;
+  padding: 14px;
+  border-radius: 8px;
+}
+
+.inspection-notes {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.inspections-card .inspection-start-scheduled {
+  padding: 7px 10px;
+  font-size: 13px;
 }
 
 .inspections-error {
@@ -120,12 +155,17 @@
   color: #1d4ed8;
 }
 
+.inspection-status.failed,
 .inspection-status.cancelled {
   background: #fee2e2;
   color: #b91c1c;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 700px) {
+  .inspections-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .inspections-card {
     padding: 18px;
   }
@@ -133,4 +173,37 @@
   .inspections-header h1 {
     font-size: 24px;
   }
+}
+
+
+.inspection-status.scheduled {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.inspection-status.ready {
+  background: #dcfce7;
+  color: #166534;
+  text-transform: none;
+}
+
+.inspection-schedule-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.inspection-schedule-action small {
+  flex-basis: 100%;
+  color: #475569;
+}
+
+
+.inspections-card .inspection-cancel-booking {
+  padding: 7px 10px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #334155;
+  font-size: 13px;
 }

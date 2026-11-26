@@ -13,8 +13,7 @@
 .equipment-robot span { display: block; margin-top: 5px; }
 .equipment-robot p { margin-bottom: 0; color: var(--eq-muted); }
 .equipment-workspace-body { margin-left: 224px; min-width: 0; }
-.equipment-topbar { min-height: 65px; border-bottom: 1px solid #e7ecf3; padding: 18px 32px; background: #ffffffd9; display: flex; justify-content: space-between; gap: 16px; color: #65748b; font-size: 12px; overflow-wrap: anywhere; }
-.equipment-workspace-label { color: #8995a7; }
+.equipment-topbar { --reminders-gutter: 32px; position: relative; min-height: 65px; border-bottom: 1px solid #e7ecf3; padding: 18px 32px; background: #ffffffd9; display: flex; justify-content: space-between; align-items: center; gap: 16px; color: #65748b; font-size: 12px; overflow-wrap: anywhere; }
 .equipment-page { min-height: calc(100vh - 65px); padding: 32px; background-image: linear-gradient(#225ce405 1px, transparent 1px), linear-gradient(90deg, #225ce405 1px, transparent 1px); background-size: 40px 40px; }
 .equipment-container { max-width: 1440px; margin: 0 auto; }
 .equipment-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 28px; }
@@ -134,9 +133,9 @@
   .equipment-sidebar { padding: 14px 16px; flex-wrap: wrap; gap: 12px; }
   .equipment-sidebar nav a { padding: 9px 12px; }
   .equipment-sidebar nav { margin-left: auto; }
-  .equipment-brand small, .equipment-workspace-label { display: none; }
+  .equipment-brand small { display: none; }
   .equipment-brand strong { font-size: 15px; }
-  .equipment-topbar { min-height: 48px; padding: 16px; }
+  .equipment-topbar { --reminders-gutter: 16px; min-height: 48px; padding: 10px 16px; }
   .equipment-page { padding: 24px 16px; }
   .equipment-header { gap: 12px; }
   .equipment-header > .equipment-add-btn { width: 100%; }

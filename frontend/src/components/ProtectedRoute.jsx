@@ -1,6 +1,8 @@
 
 import { useEffect, useState } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate } from "react-router-dom";
+
+import { InspectionReminderOutlet } from "./InspectionReminders.jsx";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -159,5 +161,5 @@ export default function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
-  return <Outlet />;
+  return <InspectionReminderOutlet />;
 }

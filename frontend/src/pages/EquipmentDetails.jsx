@@ -103,12 +103,17 @@ export default function EquipmentDetails() {
             <h1>{equipment.name}</h1>
             <div className="equipment-meta">{[equipment.equipment_type, equipment.location, [equipment.manufacturer, equipment.model].filter(Boolean).join(" "), equipment.installation_date && `Installed ${formatDate(equipment.installation_date, true)}`].filter(Boolean).map((value, index) => <span key={index}>{value}</span>)}</div>
             <div className="eq-profile-actions">
-              <button className="eq-primary-action" disabled title="Inspection execution is not connected yet"><Icon name="play" />Start inspection</button>
-              <button disabled title="Inspection scheduling is not connected yet"><Icon name="calendar" />Schedule</button>
+              {equipment.status === "active" && <>
+                <Link className="eq-primary-action" to={`/inspections?mode=start&equipment=${equipment.id}`}>
+                  <Icon name="play" />Start inspection
+                </Link>
+                <Link to={`/inspections?mode=schedule&equipment=${equipment.id}`}>
+                  <Icon name="calendar" />Schedule
+                </Link>
+              </>}
               <button disabled title="Report generation is not connected yet"><Icon name="report" />Generate report</button>
               <Link to={`/equipment/${equipment.id}/edit`}>Edit equipment</Link>
             </div>
-            <p className="eq-controls-note">Inspection, scheduling and report controls are awaiting integration.</p>
           </div>
           <aside className="eq-health-summary">
             <p>Last recorded health</p>

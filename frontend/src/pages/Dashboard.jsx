@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import InspectionReminders from "../components/InspectionReminders.jsx";
+
 const API_URL = "http://127.0.0.1:8000";
 
 export default function Dashboard() {
@@ -76,6 +78,7 @@ async function handleLogout() {
       }}
     >
       <header
+        className="dashboard-header"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -86,19 +89,22 @@ async function handleLogout() {
       >
         <h1>NexaSense Dashboard</h1>
 
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: "12px 24px",
-            background: "#087e79",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-          }}
-        >
-          Log out
-        </button>
+        <div className="dashboard-header-actions">
+          <InspectionReminders />
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: "12px 24px",
+              background: "#087e79",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+            }}
+          >
+            Log out
+          </button>
+        </div>
       </header>
 
 <section style={{ marginTop: "32px" }}>

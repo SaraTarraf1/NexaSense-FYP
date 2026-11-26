@@ -7,6 +7,7 @@ from sqlalchemy import select
 from app.core.database import SessionLocal
 from app.models.inspection import Inspection
 from app.services.alert_notification_service import dispatch_pending_alert_notifications
+from app.services.inspection_service import record_due_inspection_reminders
 from app.services.sensor_collection_service import (
     collect_inspection_readings,
 )
@@ -63,6 +64,12 @@ class SensorScheduler:
                     dispatch_pending_alert_notifications(db)
             except Exception:
                 logger.exception("Alert notification dispatch cycle failed.")
+
+            try:
+                with SessionLocal.begin() as db:
+                    record_due_inspection_reminders(db)
+            except Exception:
+                logger.exception("Inspection reminder cycle failed.")
 
             self._stop_event.wait(1)
 
