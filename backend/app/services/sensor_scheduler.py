@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from app.core.database import SessionLocal
 from app.models.inspection import Inspection
+from app.services.alert_notification_service import dispatch_pending_alert_notifications
 from app.services.sensor_collection_service import (
     collect_inspection_readings,
 )
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class SensorScheduler:
     """
-    Background scheduler for simulated sensor collection.
+    Background scheduler for sensor collection and in-app notification delivery.
 
     Runs every second and checks whether readings are due.
     Each sensor's configured interval determines when
@@ -56,6 +57,12 @@ class SensorScheduler:
                 self._collect_active_inspections()
             except Exception:
                 logger.exception("Sensor scheduler cycle failed.")
+
+            try:
+                with SessionLocal.begin() as db:
+                    dispatch_pending_alert_notifications(db)
+            except Exception:
+                logger.exception("Alert notification dispatch cycle failed.")
 
             self._stop_event.wait(1)
 

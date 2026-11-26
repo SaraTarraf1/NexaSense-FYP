@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
+import EquipmentAlerts from "../components/EquipmentAlerts";
 import EquipmentLayout from "../components/EquipmentLayout";
 import { getEquipmentById } from "../services/equipmentService";
 import "./EquipmentDetails.css";
@@ -124,7 +125,7 @@ export default function EquipmentDetails() {
             </div>
           )}
           {tab === "inspections" && <section className="eq-detail-card"><h2>Inspections</h2><EmptyState title="Inspection history is unavailable">Inspections for this equipment will appear when the inspection service is connected.</EmptyState></section>}
-          {tab === "alerts" && <section className="eq-detail-card"><h2>Equipment alerts</h2><EmptyState title="Alert data is unavailable">Alerts will appear when monitoring and health assessments are connected.</EmptyState></section>}
+          {tab === "alerts" && <EquipmentAlerts key={equipment.id} equipmentId={equipment.id} />}
           {tab === "profile" && <section className="eq-detail-card"><div className="eq-card-heading"><h2>Equipment profile</h2><Link className="eq-text-link" to={`/equipment/${equipment.id}/edit`}>Edit profile →</Link></div><dl className="equipment-details-grid">{[["Identifier", equipment.identifier], ["Name", equipment.name], ["Type", equipment.equipment_type], ["Location", equipment.location], ["Manufacturer", equipment.manufacturer], ["Model", equipment.model], ["Serial number", equipment.serial_number], ["Status", equipment.status], ["Installation date", formatDate(equipment.installation_date, true)], ["Registered on", formatDate(equipment.created_at)], ["Last updated", formatDate(equipment.updated_at)]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "Not specified"}</dd></div>)}</dl><div className="equipment-details-description"><span>Notes</span><p>{equipment.description || "No notes provided."}</p></div></section>}
         </div>
       </>}
