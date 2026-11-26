@@ -16,6 +16,7 @@ from app.services.fault_classification_service import (
     SUPPORTING_READING_WINDOW,
     classify_fault,
 )
+from app.services.health_assessment_service import record_health_assessment
 from app.services.sensor_configuration import (
     get_required_sensor_types,
 )
@@ -109,9 +110,15 @@ def collect_inspection_readings(
 
         collected.append(reading)
 
+    if not collected:
+        return collected
+
     sensor_types = {sensor.id: sensor.sensor_type for sensor in sensors}
     classifications = _record_fault_classifications(
         db, equipment.equipment_type, collected, sensor_types
+    )
+    assessment = record_health_assessment(
+        db, equipment=equipment, inspection=inspection, trigger_reading=collected[-1]
     )
     record_collection_alerts(
         db,
@@ -121,6 +128,7 @@ def collect_inspection_readings(
         sensor_types=sensor_types,
         classifications=classifications,
         now=now,
+        health_assessment=assessment,
     )
     return collected
 

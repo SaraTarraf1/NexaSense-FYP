@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.equipment_monitoring import MonitoringReadingEvidence
+from app.services.alert_configuration import AlertEventType
 
 
 class AlertNotificationResponse(BaseModel):
@@ -19,8 +20,9 @@ class AlertResponse(BaseModel):
     id: int
     equipment_id: int
     inspection_id: int
-    event_type: Literal["anomaly", "fault"]
+    event_type: AlertEventType
     event_key: str
+    health_assessment_id: int | None = None
     severity: Literal["warning", "critical"]
     description: str
     status: str

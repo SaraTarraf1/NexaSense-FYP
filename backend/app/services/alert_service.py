@@ -1,7 +1,6 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
@@ -9,12 +8,15 @@ from sqlalchemy.orm import Session
 from app.models.alert import Alert
 from app.models.alert_notification import AlertNotification
 from app.models.equipment import Equipment
+from app.models.equipment_health_assessment import EquipmentHealthAssessment
 from app.models.fault_classification import FaultClassification
 from app.models.inspection import Inspection
 from app.models.sensor_reading import SensorReading
 from app.services.alert_configuration import (
     ALERT_DUPLICATE_WINDOW,
+    HEALTH_ALERT_SEVERITIES,
     IN_APP_NOTIFICATION_CHANNEL,
+    AlertEventType,
     AlertSeverity,
     get_anomaly_alert_severity,
     get_fault_alert_severity,
@@ -24,7 +26,7 @@ from app.services.alert_configuration import (
 @dataclass(frozen=True)
 class AlertCandidate:
     source_reading_id: int
-    event_type: Literal["anomaly", "fault"]
+    event_type: AlertEventType
     event_key: str
     severity: AlertSeverity
     description: str
@@ -90,6 +92,22 @@ def _fault_candidates(classifications: list[FaultClassification]) -> Iterator[Al
             )
 
 
+def _health_candidates(assessment: EquipmentHealthAssessment | None) -> Iterator[AlertCandidate]:
+    if assessment is None:
+        return
+
+    severity = HEALTH_ALERT_SEVERITIES.get(assessment.status)
+    if severity is not None:
+        yield AlertCandidate(
+            source_reading_id=assessment.trigger_reading_id,
+            event_type="health",
+            event_key=f"health:{assessment.status}",
+            severity=severity,
+            description=f"Equipment health is {assessment.status}. {assessment.message}",
+            evidence_reading_ids=assessment.evidence_reading_ids,
+        )
+
+
 def record_collection_alerts(
     db: Session,
     *,
@@ -99,11 +117,13 @@ def record_collection_alerts(
     sensor_types: dict[int, str],
     classifications: list[FaultClassification],
     now: datetime,
+    health_assessment: EquipmentHealthAssessment | None = None,
 ) -> None:
     """Save alerts and pending notifications while collection holds the inspection lock."""
     candidates = [
         *_anomaly_candidates(readings, sensor_types),
         *_fault_candidates(classifications),
+        *_health_candidates(health_assessment),
     ]
     if not candidates:
         return
@@ -132,7 +152,7 @@ def record_collection_alerts(
         (key, tuple(sorted(reading_ids))) for _, key, reading_ids, _ in existing
     }
 
-    alerts = []
+    selected = []
     for candidate in candidates:
         if (
             candidate.event_key in recent_keys
@@ -141,34 +161,43 @@ def record_collection_alerts(
         ):
             continue
 
-        alerts.append(
-            Alert(
-                equipment_id=equipment.id,
-                inspection_id=inspection.id,
-                source_reading_id=candidate.source_reading_id,
-                fault_classification_id=(
-                    candidate.source_reading_id if candidate.event_type == "fault" else None
-                ),
-                event_type=candidate.event_type,
-                event_key=candidate.event_key,
-                severity=candidate.severity,
-                description=candidate.description,
-                evidence_reading_ids=candidate.evidence_reading_ids,
-                created_at=now,
-            )
-        )
+        selected.append(candidate)
         recent_keys.add(candidate.event_key)
 
-    if alerts:
-        # Fault classifications must have an ID in the database before alerts reference them.
-        db.flush()
-        db.add_all(alerts)
-        db.flush()
-        db.add_all(
-            AlertNotification(
-                alert_id=alert.id,
-                recipient_user_id=equipment.user_id,
-                channel=IN_APP_NOTIFICATION_CHANNEL,
-            )
-            for alert in alerts
+    if not selected:
+        return
+
+    # Persist the fault and health sources before adding alerts that reference them.
+    db.flush()
+    alerts = [
+        Alert(
+            equipment_id=equipment.id,
+            inspection_id=inspection.id,
+            source_reading_id=candidate.source_reading_id,
+            fault_classification_id=(
+                candidate.source_reading_id if candidate.event_type == "fault" else None
+            ),
+            health_assessment_id=(
+                health_assessment.id
+                if candidate.event_type == "health" and health_assessment is not None
+                else None
+            ),
+            event_type=candidate.event_type,
+            event_key=candidate.event_key,
+            severity=candidate.severity,
+            description=candidate.description,
+            evidence_reading_ids=candidate.evidence_reading_ids,
+            created_at=now,
         )
+        for candidate in selected
+    ]
+    db.add_all(alerts)
+    db.flush()
+    db.add_all(
+        AlertNotification(
+            alert_id=alert.id,
+            recipient_user_id=equipment.user_id,
+            channel=IN_APP_NOTIFICATION_CHANNEL,
+        )
+        for alert in alerts
+    )

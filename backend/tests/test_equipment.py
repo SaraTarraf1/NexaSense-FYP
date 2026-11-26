@@ -1,4 +1,5 @@
-﻿from types import SimpleNamespace
+﻿from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,6 +11,11 @@ from app.main import app
 from app.api.auth import get_current_user
 from app.api.equipment import get_db
 from app.core.database import Base
+from app.models.equipment_health_assessment import EquipmentHealthAssessment
+from app.models.inspection import Inspection
+from app.models.sensor import Sensor
+from app.services.sensor_configuration import SENSOR_DEFINITIONS
+from app.services.sensor_reading_service import save_sensor_reading
 
 
 @pytest.fixture
@@ -104,3 +110,52 @@ def test_delete_equipment_and_owner_access(client):
     assert client.get(endpoint).status_code == 404
     assert client.get("/api/equipment").json() == []
     assert client.delete(endpoint).status_code == 404
+
+
+def test_registry_shows_health_from_the_latest_inspection(client):
+    item = client.post("/api/equipment", json=payload()).json()
+    equipment_id, user_id = item["id"], item["user_id"]
+    listing = client.get("/api/equipment").json()
+    assert listing[0]["health_status"] == "not_evaluated"
+    assert listing[0]["last_inspection_at"] is None
+
+    db = app.dependency_overrides[get_db]()
+    started_at = datetime(2026, 11, 26, 10, tzinfo=timezone.utc)
+    previous = Inspection(equipment_id=equipment_id, user_id=user_id, started_at=started_at)
+    db.add_all([previous, Sensor(sensor_type="temperature", **SENSOR_DEFINITIONS["temperature"])])
+    db.flush()
+
+    reading = save_sensor_reading(db, previous.id, "temperature", 35.0)
+    db.add(EquipmentHealthAssessment(
+        equipment_id=equipment_id, inspection_id=previous.id, trigger_reading_id=reading.id,
+        status="normal", message="Current readings are within range.", assessed_at=started_at,
+        evidence_reading_ids=[reading.id], fault_rule_ids=[], missing_sensor_types=[],
+    ))
+    previous.status = "completed"
+    db.flush()
+
+    listing = client.get("/api/equipment").json()
+    assert listing[0]["health_status"] == "normal"
+    assert listing[0]["last_inspection_at"].startswith("2026-11-26T10:00:00")
+
+    current = Inspection(
+        equipment_id=equipment_id, user_id=user_id, started_at=started_at + timedelta(minutes=1)
+    )
+    db.add(current)
+    db.flush()
+    listing = client.get("/api/equipment").json()
+    assert listing[0]["health_status"] == "not_evaluated"
+    assert listing[0]["last_inspection_at"].startswith("2026-11-26T10:01:00")
+
+    missing = save_sensor_reading(db, current.id, "temperature", None)
+    db.add(EquipmentHealthAssessment(
+        equipment_id=equipment_id, inspection_id=current.id, trigger_reading_id=missing.id,
+        status="insufficient_data", message="Current observations are missing.",
+        assessed_at=started_at + timedelta(minutes=1), evidence_reading_ids=[],
+        fault_rule_ids=[], missing_sensor_types=["temperature"],
+    ))
+    db.flush()
+    assert client.get("/api/equipment").json()[0]["health_status"] == "insufficient_data"
+
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id=2)
+    assert client.get("/api/equipment").json() == []

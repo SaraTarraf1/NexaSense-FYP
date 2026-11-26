@@ -191,8 +191,6 @@
 .equipment-machine-icon.power { background: #fffae9; color: #b86808; }
 .equipment-machine-icon.water { background: #ecfcff; color: #0085a3; }
 .equipment-machine-icon.fan { background: #f0f3f8; color: #52627b; }
-.equipment-registry .equipment-health-badge { text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12px; padding: 5px 10px; border: 0; background: #f1f4f8; color: #52627b; }
-.equipment-health-badge::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #95a3b8; margin-right: 6px; }
 .equipment-table-status { color: #16753e; text-transform: capitalize; white-space: nowrap; }
 .equipment-page .equipment-details-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid #cee5e4; background: #f3fbfa; border-radius: 8px; color: #087678; font-size: 12px; font-weight: 600; padding: 9px 11px; white-space: nowrap; }
 .equipment-details-btn:hover { background: #e5f6f3; border-color: #7cbfba; }

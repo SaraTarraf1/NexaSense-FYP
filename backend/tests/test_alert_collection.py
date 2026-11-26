@@ -8,6 +8,7 @@ from app.core.database import Base
 from app.models.alert import Alert
 from app.models.alert_notification import AlertNotification
 from app.models.equipment import Equipment
+from app.models.equipment_health_assessment import EquipmentHealthAssessment
 from app.models.fault_classification import FaultClassification
 from app.models.inspection import Inspection
 from app.models.sensor import Sensor
@@ -89,13 +90,20 @@ def test_collection_suppresses_repeats_per_inspection_and_diagnostic_rule(
         "anomaly:vibration:above_threshold": "warning",
         "fault:DR-001": "critical",
         "fault:DR-002": "warning",
+        "health:critical": "critical",
     }
-    assert len(first_alerts) == 5
+    assert len(first_alerts) == 6
     for alert in first_alerts:
         assert set(alert.evidence_reading_ids) <= reading_ids
         if alert.event_type == "fault":
             assert len(alert.evidence_reading_ids) == 2
             assert alert.fault_classification_id == alert.source_reading_id
+        if alert.event_type == "health":
+            assessment = db.get(EquipmentHealthAssessment, alert.health_assessment_id)
+            assert assessment.status == "critical"
+            assert alert.source_reading_id == assessment.trigger_reading_id
+            assert alert.evidence_reading_ids == assessment.evidence_reading_ids
+            assert alert.fault_classification_id is None
     notifications = db.scalars(select(AlertNotification)).all()
     assert {notification.alert_id for notification in notifications} == {
         alert.id for alert in first_alerts
@@ -110,12 +118,12 @@ def test_collection_suppresses_repeats_per_inspection_and_diagnostic_rule(
     CollectionClock.current = first_cycle + timedelta(seconds=30)
     assert len(collect_inspection_readings(db, inspection.id)) == 3
     db.commit()
-    assert len(db.scalars(select(Alert)).all()) == 5
+    assert len(db.scalars(select(Alert)).all()) == 6
 
     CollectionClock.current = first_cycle + timedelta(seconds=60)
     assert len(collect_inspection_readings(db, inspection.id)) == 3
     db.commit()
-    assert len(db.scalars(select(Alert)).all()) == 10
+    assert len(db.scalars(select(Alert)).all()) == 12
 
     reading_types = {sensor.id: sensor.sensor_type for sensor in db.scalars(select(Sensor))}
     original_readings = [db.get(SensorReading, reading_id) for reading_id in sorted(reading_ids)]
@@ -126,9 +134,10 @@ def test_collection_suppresses_repeats_per_inspection_and_diagnostic_rule(
         db, equipment=equipment, inspection=inspection, readings=original_readings,
         sensor_types=reading_types, classifications=original_classifications,
         now=first_cycle + timedelta(seconds=120),
+        health_assessment=assessment,
     )
     db.commit()
-    assert len(db.scalars(select(Alert)).all()) == 10
+    assert len(db.scalars(select(Alert)).all()) == 12
 
     inspection.status = "completed"
     new_inspection = Inspection(equipment_id=equipment.id, user_id=equipment.user_id)
@@ -136,8 +145,8 @@ def test_collection_suppresses_repeats_per_inspection_and_diagnostic_rule(
     db.flush()
     assert len(collect_inspection_readings(db, new_inspection.id)) == 3
     db.commit()
-    assert len(db.scalars(select(Alert).where(Alert.inspection_id == new_inspection.id)).all()) == 5
-    assert len(db.scalars(select(AlertNotification)).all()) == 15
+    assert len(db.scalars(select(Alert).where(Alert.inspection_id == new_inspection.id)).all()) == 6
+    assert len(db.scalars(select(AlertNotification)).all()) == 18
 
 
 @pytest.mark.parametrize(
@@ -148,7 +157,7 @@ def test_collection_suppresses_repeats_per_inspection_and_diagnostic_rule(
         (
             SimulatedMeasurement(90.0, "abnormal"),
             SimulatedMeasurement(50.0, "normal"),
-            {"anomaly:temperature:above_threshold", "fault:unknown"},
+            {"anomaly:temperature:above_threshold", "fault:unknown", "health:warning"},
         ),
         (
             SimulatedMeasurement(90.0, "abnormal"),
@@ -187,7 +196,7 @@ def simulate_one_anomaly(monkeypatch):
     simulate_values(
         monkeypatch,
         SimulatedMeasurement(90.0, "abnormal"),
-        SimulatedMeasurement(50.0, "normal"),
+        SimulatedMeasurement(None, "missing"),
         SimulatedMeasurement(2.0, "normal"),
     )
 
@@ -267,3 +276,43 @@ def test_dispatch_rechecks_the_recipient_and_channel(collection_database, monkey
     assert wrong_owner.error_message == "The recipient is no longer eligible for this alert."
     assert unavailable_channel.status == "failed"
     assert unavailable_channel.error_message == "The configured notification channel is unavailable."
+
+
+def test_health_alert_escalation_is_not_suppressed_by_a_recent_warning(
+    collection_database, monkeypatch
+):
+    db, _, inspection = collection_database
+    measurements = {
+        "temperature": SimulatedMeasurement(90.0, "abnormal"),
+        "thermal": SimulatedMeasurement(50.0, "normal"),
+        "vibration": SimulatedMeasurement(2.0, "normal"),
+    }
+
+    class CollectionClock:
+        current = datetime.now(timezone.utc)
+
+        @classmethod
+        def now(cls, tz):
+            return cls.current.astimezone(tz)
+
+    monkeypatch.setattr("app.services.sensor_collection_service.datetime", CollectionClock)
+    monkeypatch.setattr(
+        "app.services.sensor_collection_service.simulate_sensor_reading",
+        measurements.__getitem__,
+    )
+    health_alerts = select(Alert).where(Alert.event_type == "health").order_by(Alert.id)
+
+    collect_inspection_readings(db, inspection.id)
+    db.commit()
+    assert [alert.severity for alert in db.scalars(health_alerts)] == ["warning"]
+
+    CollectionClock.current += timedelta(seconds=6)
+    measurements["thermal"] = SimulatedMeasurement(145.0, "abnormal")
+    collect_inspection_readings(db, inspection.id)
+    db.commit()
+    assert [alert.severity for alert in db.scalars(health_alerts)] == ["warning", "critical"]
+
+    CollectionClock.current += timedelta(seconds=6)
+    collect_inspection_readings(db, inspection.id)
+    db.commit()
+    assert [alert.severity for alert in db.scalars(health_alerts)] == ["warning", "critical"]

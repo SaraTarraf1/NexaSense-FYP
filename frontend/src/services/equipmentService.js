@@ -90,10 +90,8 @@ export async function deleteEquipment(equipmentId) {
 
 
 // GET /api/equipment/{equipment_id}/monitoring
-export async function getEquipmentMonitoring(equipmentId) {
-  return equipmentRequest(`/${equipmentId}/monitoring`, {
-    method: "GET",
-  });
+export function getEquipmentMonitoring(equipmentId, { signal } = {}) {
+  return equipmentRequest(`/${equipmentId}/monitoring`, { signal });
 }
 
 export function getEquipmentAlerts(equipmentId, { beforeId = null, signal } = {}) {

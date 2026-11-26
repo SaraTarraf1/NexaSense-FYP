@@ -3,6 +3,7 @@ from typing import Literal
 
 
 AlertSeverity = Literal["warning", "critical"]
+AlertEventType = Literal["anomaly", "fault", "health"]
 
 ALERT_DUPLICATE_WINDOW = timedelta(seconds=60)
 IN_APP_NOTIFICATION_CHANNEL = "in_app"
@@ -18,6 +19,10 @@ IDENTIFIED_FAULT_SEVERITIES: dict[str, AlertSeverity] = {
 UNRESOLVED_FAULT_SEVERITIES: dict[str, AlertSeverity] = {
     "unknown": "warning",
     "undetermined": "warning",
+}
+HEALTH_ALERT_SEVERITIES: dict[str, AlertSeverity] = {
+    "warning": "warning",
+    "critical": "critical",
 }
 
 

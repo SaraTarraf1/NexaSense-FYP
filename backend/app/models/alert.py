@@ -23,9 +23,12 @@ class Alert(Base):
             name="ck_alert_severity",
         ),
         CheckConstraint(
-            "(event_type = 'anomaly' AND fault_classification_id IS NULL) OR "
+            "(event_type = 'anomaly' AND fault_classification_id IS NULL "
+            "AND health_assessment_id IS NULL) OR "
             "(event_type = 'fault' AND fault_classification_id IS NOT NULL "
-            "AND fault_classification_id = source_reading_id)",
+            "AND fault_classification_id = source_reading_id AND health_assessment_id IS NULL) OR "
+            "(event_type = 'health' AND health_assessment_id IS NOT NULL "
+            "AND fault_classification_id IS NULL)",
             name="ck_alert_event_source",
         ),
         UniqueConstraint("source_reading_id", "event_key", name="uq_alert_trigger"),
@@ -51,6 +54,13 @@ class Alert(Base):
     )
     fault_classification_id: Mapped[int | None] = mapped_column(
         ForeignKey("fault_classifications.source_reading_id", ondelete="CASCADE")
+    )
+    health_assessment_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "equipment_health_assessments.id",
+            name="fk_alerts_health_assessment_id",
+            ondelete="CASCADE",
+        )
     )
     event_type: Mapped[str] = mapped_column(String(20), nullable=False)
     event_key: Mapped[str] = mapped_column(String(100), nullable=False)

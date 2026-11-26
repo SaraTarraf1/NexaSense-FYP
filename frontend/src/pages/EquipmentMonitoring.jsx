@@ -1,61 +1,19 @@
 
-import { useEffect, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 
 import FaultClassifications from "../components/FaultClassifications";
-import { getEquipmentMonitoring } from "../services/equipmentService";
+import EquipmentHealthAssessment from "../components/EquipmentHealthAssessment";
 import "./EquipmentMonitoring.css";
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleString() : "Not available";
 }
 
-export function EquipmentMonitoringPanel({ equipmentId, faultsOnly = false }) {
-
-
-  const [monitoring, setMonitoring] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    let pending = false;
-
-    async function loadMonitoring() {
-      if (pending) return;
-      pending = true;
-
-      try {
-        const data = await getEquipmentMonitoring(equipmentId);
-
-        if (active) {
-          setMonitoring(data);
-          setError("");
-        }
-      } catch (err) {
-        if (active) {
-          setError(err.message);
-        }
-      } finally {
-        pending = false;
-        if (active) setLoading(false);
-      }
-    }
-
-    loadMonitoring();
-
-    const interval = setInterval(loadMonitoring, 5000);
-
-    return () => {
-      active = false;
-      clearInterval(interval);
-    };
-  }, [equipmentId]);
-
+export function EquipmentMonitoringPanel({ monitoring, loading, error, healthAndFaults = false }) {
   return (
     <section
       className="monitoring-page monitoring-embedded"
-      aria-label={faultsOnly ? "Equipment faults" : "Equipment monitoring"}
+      aria-label={healthAndFaults ? "Equipment health and faults" : "Equipment monitoring"}
     >
         {loading && <p role="status">Loading monitoring data...</p>}
 
@@ -65,9 +23,14 @@ export function EquipmentMonitoringPanel({ equipmentId, faultsOnly = false }) {
           </div>
         )}
 
-        {monitoring && faultsOnly && <FaultClassifications monitoring={monitoring} />}
+        {monitoring && healthAndFaults && (
+          <div className="eq-health-grid">
+            <EquipmentHealthAssessment monitoring={monitoring} />
+            <FaultClassifications monitoring={monitoring} />
+          </div>
+        )}
 
-        {monitoring && !faultsOnly && (
+        {monitoring && !healthAndFaults && (
           <>
             <header className="monitoring-header">
               <div>

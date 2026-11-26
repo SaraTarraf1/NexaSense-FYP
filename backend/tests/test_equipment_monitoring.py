@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 from fastapi import FastAPI
@@ -11,6 +12,7 @@ from app.api.auth import get_current_user, get_db
 from app.api.equipment_monitoring import router
 from app.core.database import Base
 from app.models.equipment import Equipment
+from app.models.equipment_health_assessment import EquipmentHealthAssessment
 from app.models.fault_classification import FaultClassification
 from app.models.inspection import Inspection
 from app.models.sensor import Sensor
@@ -179,3 +181,76 @@ def test_monitoring_surfaces_fault_evidence_for_the_latest_inspection():
         assert response.status_code == 200
         assert response.json()["inspection_id"] == new_inspection.id
         assert response.json()["faults"] == []
+
+
+def test_monitoring_keeps_recent_health_attempts_and_the_last_completed_result():
+    with monitoring_client() as (db, client):
+        equipment = Equipment(
+            user_id=1, identifier="AC1", name="Server Room AC",
+            equipment_type="Air conditioner", location="Server Room",
+        )
+        db.add(equipment)
+        db.add(Sensor(sensor_type="temperature", **SENSOR_DEFINITIONS["temperature"]))
+        db.flush()
+        previous = Inspection(equipment_id=equipment.id, user_id=1)
+        db.add(previous)
+        db.flush()
+        previous_reading = save_sensor_reading(db, previous.id, "temperature", 35.0)
+        previous.status = "completed"
+        assessed_at = datetime(2026, 11, 26, 10, tzinfo=timezone.utc)
+        completed = EquipmentHealthAssessment(
+            equipment_id=equipment.id,
+            inspection_id=previous.id,
+            trigger_reading_id=previous_reading.id,
+            status="normal",
+            message="All readings were within range.",
+            assessed_at=assessed_at,
+            evidence_reading_ids=[previous_reading.id],
+            fault_rule_ids=[],
+            missing_sensor_types=[],
+        )
+        db.add(completed)
+        db.flush()
+
+        endpoint = f"/api/equipment/{equipment.id}/monitoring"
+        response = client.get(endpoint)
+        assert response.status_code == 200
+        assert response.json()["health_status"] == "normal"
+        assert response.json()["health_assessment"]["evidence"][0]["reading_id"] == previous_reading.id
+
+        current = Inspection(equipment_id=equipment.id, user_id=1)
+        db.add(current)
+        db.flush()
+        response = client.get(endpoint)
+        assert response.status_code == 200
+        assert response.json()["health_status"] == "not_evaluated"
+        assert response.json()["health_assessment"] is None
+        assert response.json()["last_completed_health_assessment"]["id"] == completed.id
+
+        for offset in range(1, 22):
+            reading = save_sensor_reading(db, current.id, "temperature", 40.0)
+            attempt = EquipmentHealthAssessment(
+                equipment_id=equipment.id,
+                inspection_id=current.id,
+                trigger_reading_id=reading.id,
+                status="insufficient_data",
+                message="Required observations are missing.",
+                assessed_at=assessed_at + timedelta(seconds=offset),
+                evidence_reading_ids=[reading.id, previous_reading.id],
+                fault_rule_ids=[],
+                missing_sensor_types=["vibration", "thermal"],
+            )
+            db.add(attempt)
+        db.flush()
+
+        response = client.get(endpoint)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["health_status"] == "insufficient_data"
+        assert data["health_assessment"]["id"] == attempt.id
+        assert data["health_assessment"]["missing_sensor_types"] == ["vibration", "thermal"]
+        assert [item["reading_id"] for item in data["health_assessment"]["evidence"]] == [reading.id]
+        assert data["last_completed_health_assessment"]["id"] == completed.id
+        assert len(data["health_history"]) == 20
+        assert data["health_history"][0]["id"] == attempt.id
+        assert all(entry["inspection_id"] == current.id for entry in data["health_history"])
