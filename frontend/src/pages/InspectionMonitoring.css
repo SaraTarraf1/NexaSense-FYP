@@ -160,6 +160,11 @@
   color: white;
 }
 
+.monitoring-fail {
+  background: #9f1239;
+  color: #fff;
+}
+
 .monitoring-cancel {
   background: #fee2e2;
   color: #b91c1c;

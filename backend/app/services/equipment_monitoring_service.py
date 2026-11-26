@@ -29,7 +29,7 @@ def get_equipment_monitoring(
 
     inspection = db.scalar(
         select(Inspection)
-        .where(Inspection.equipment_id == equipment.id)
+        .where(Inspection.equipment_id == equipment.id, Inspection.started_at.is_not(None))
         .order_by(
             Inspection.started_at.desc(),
             Inspection.id.desc(),

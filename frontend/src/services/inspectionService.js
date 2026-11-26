@@ -74,6 +74,18 @@ export async function startInspection(equipmentId) {
 }
 
 
+export function scheduleInspection(equipmentId, scheduledAt, notes) {
+  return inspectionRequest("/schedule", {
+    method: "POST",
+    body: JSON.stringify({ equipment_id: equipmentId, scheduled_at: scheduledAt, notes }),
+  });
+}
+
+export function startScheduledInspection(inspectionId) {
+  return inspectionRequest(`/${inspectionId}/start`, { method: "POST" });
+}
+
+
 // GET /api/inspections
 export async function getAllInspections() {
   return inspectionRequest("", {
@@ -106,6 +118,19 @@ export async function cancelInspection(inspectionId) {
 }
 
 
+export function cancelInspectionBooking(inspectionId) {
+  return inspectionRequest(`/${inspectionId}/cancel-booking`, { method: "POST" });
+}
+
+
+export function failInspection(inspectionId, failureReason) {
+  return inspectionRequest(`/${inspectionId}/fail`, {
+    method: "POST",
+    body: JSON.stringify({ failure_reason: failureReason }),
+  });
+}
+
+
 // GET /api/inspections/{inspection_id}/readings
 export async function getInspectionReadings(
   inspectionId,
@@ -128,4 +153,9 @@ export async function getLatestSensorReadings(inspectionId) {
       method: "GET",
     }
   );
+}
+
+
+export function getInspectionReminders(signal) {
+  return inspectionRequest("/reminders", { signal });
 }

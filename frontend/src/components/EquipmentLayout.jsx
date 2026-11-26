@@ -1,5 +1,6 @@
 ﻿
 import { Link, NavLink } from "react-router-dom";
+import InspectionReminders from "./InspectionReminders.jsx";
 import "../pages/Equipment.css";
 
 export default function EquipmentLayout({
@@ -85,9 +86,7 @@ export default function EquipmentLayout({
             )}
           </span>
 
-          <span className="equipment-workspace-label">
-            Inspection workspace
-          </span>
+          <InspectionReminders />
         </div>
 
         {/* Page Content */}

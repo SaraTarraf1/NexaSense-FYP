@@ -138,6 +138,15 @@ def test_registry_shows_health_from_the_latest_inspection(client):
     assert listing[0]["health_status"] == "normal"
     assert listing[0]["last_inspection_at"].startswith("2026-11-26T10:00:00")
 
+    db.add(Inspection(
+        equipment_id=equipment_id, user_id=user_id, status="scheduled",
+        scheduled_at=started_at + timedelta(hours=1), started_at=None,
+    ))
+    db.flush()
+    listing = client.get("/api/equipment").json()
+    assert listing[0]["health_status"] == "normal"
+    assert listing[0]["last_inspection_at"].startswith("2026-11-26T10:00:00")
+
     current = Inspection(
         equipment_id=equipment_id, user_id=user_id, started_at=started_at + timedelta(minutes=1)
     )
