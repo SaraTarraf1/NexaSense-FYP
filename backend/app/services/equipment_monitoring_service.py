@@ -1,9 +1,11 @@
+from collections.abc import Collection
 from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.equipment import Equipment
+from app.models.equipment_health_assessment import EquipmentHealthAssessment
 from app.models.fault_classification import FaultClassification
 from app.models.inspection import Inspection
 from app.models.sensor import Sensor
@@ -16,6 +18,7 @@ from app.services.sensor_configuration import (
 
 RECENT_ANOMALY_LIMIT = 50
 RECENT_FAULT_LIMIT = 50
+RECENT_HEALTH_ASSESSMENT_LIMIT = 20
 
 
 def get_equipment_monitoring(
@@ -193,7 +196,7 @@ def get_equipment_monitoring(
         "faults": (
             _get_inspection_faults(db, equipment.id, inspection.id) if inspection else []
         ),
-        "health_status": "not_evaluated",
+        **_get_equipment_health(db, equipment.id, inspection.id if inspection else None),
     }
 
 
@@ -225,21 +228,7 @@ def _get_inspection_faults(db: Session, equipment_id: int, inspection_id: int) -
         for match in fault.matches
         for reading_id in match["evidence_reading_ids"]
     }
-    evidence = {}
-    if evidence_ids:
-        evidence_rows = db.execute(
-            select(SensorReading, Sensor.sensor_type)
-            .join(Sensor, Sensor.id == SensorReading.sensor_id)
-            .where(
-                SensorReading.id.in_(evidence_ids),
-                SensorReading.equipment_id == equipment_id,
-                SensorReading.inspection_id == inspection_id,
-            )
-        )
-        evidence = {
-            reading.id: _reading_details(reading, sensor_type)
-            for reading, sensor_type in evidence_rows
-        }
+    evidence = _get_reading_evidence(db, equipment_id, inspection_id, evidence_ids)
 
     return [
         {
@@ -261,3 +250,70 @@ def _get_inspection_faults(db: Session, equipment_id: int, inspection_id: int) -
         }
         for fault, reading, sensor_type in rows
     ]
+
+
+def _get_reading_evidence(
+    db: Session, equipment_id: int, inspection_id: int, reading_ids: Collection[int]
+) -> dict[int, dict]:
+    if not reading_ids:
+        return {}
+
+    rows = db.execute(
+        select(SensorReading, Sensor.sensor_type)
+        .join(Sensor, Sensor.id == SensorReading.sensor_id)
+        .where(
+            SensorReading.id.in_(reading_ids),
+            SensorReading.equipment_id == equipment_id,
+            SensorReading.inspection_id == inspection_id,
+            SensorReading.value.is_not(None),
+        )
+    )
+    return {reading.id: _reading_details(reading, sensor_type) for reading, sensor_type in rows}
+
+
+def _health_history_entry(assessment: EquipmentHealthAssessment) -> dict:
+    return {
+        "id": assessment.id,
+        "inspection_id": assessment.inspection_id,
+        "status": assessment.status,
+        "assessed_at": assessment.assessed_at,
+    }
+
+
+def _get_equipment_health(db: Session, equipment_id: int, inspection_id: int | None) -> dict:
+    query = (
+        select(EquipmentHealthAssessment)
+        .where(EquipmentHealthAssessment.equipment_id == equipment_id)
+        .order_by(EquipmentHealthAssessment.assessed_at.desc(), EquipmentHealthAssessment.id.desc())
+    )
+    history = db.scalars(query.limit(RECENT_HEALTH_ASSESSMENT_LIMIT)).all()
+    latest = next((item for item in history if item.inspection_id == inspection_id), None)
+    completed = next((item for item in history if item.status != "insufficient_data"), None)
+    if history and completed is None:
+        completed = db.scalar(
+            query.where(EquipmentHealthAssessment.status != "insufficient_data").limit(1)
+        )
+
+    detail = None
+    if latest is not None:
+        evidence = _get_reading_evidence(
+            db, equipment_id, latest.inspection_id, latest.evidence_reading_ids
+        )
+        detail = {
+            **_health_history_entry(latest),
+            "message": latest.message,
+            "fault_rule_ids": latest.fault_rule_ids,
+            "missing_sensor_types": latest.missing_sensor_types,
+            "evidence": [
+                evidence[reading_id]
+                for reading_id in latest.evidence_reading_ids
+                if reading_id in evidence
+            ],
+        }
+
+    return {
+        "health_status": latest.status if latest is not None else "not_evaluated",
+        "health_assessment": detail,
+        "last_completed_health_assessment": _health_history_entry(completed) if completed else None,
+        "health_history": [_health_history_entry(item) for item in history],
+    }

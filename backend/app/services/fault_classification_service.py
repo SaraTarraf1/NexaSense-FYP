@@ -1,11 +1,11 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from math import isfinite
 from typing import Literal
 
 from app.models.sensor_reading import SensorReading
 from app.services.fault_configuration import get_fault_rules
+from app.services.sensor_validation import is_evaluated_measurement
 
 
 SUPPORTING_READING_WINDOW = timedelta(seconds=15)
@@ -36,25 +36,6 @@ def _with_timezone(timestamp: datetime) -> datetime:
     return timestamp
 
 
-def _has_evaluated_measurement(reading: SensorReading) -> bool:
-    return (
-        reading.validation_status == "valid"
-        and reading.id is not None
-        and reading.equipment_id is not None
-        and reading.inspection_id is not None
-        and reading.value is not None
-        and isfinite(reading.value)
-        and reading.timestamp is not None
-        and (
-            (reading.detection_status == "normal" and reading.anomaly_type is None)
-            or (
-                reading.detection_status == "anomaly"
-                and reading.anomaly_type in ("above_threshold", "below_threshold")
-            )
-        )
-    )
-
-
 def classify_fault(
     equipment_type: str,
     sensor_type: str,
@@ -62,7 +43,7 @@ def classify_fault(
     supporting_readings: Iterable[tuple[str, SensorReading]],
 ) -> FaultClassificationResult:
     """Classify one evaluated reading using evidence available at the end of collection."""
-    if not _has_evaluated_measurement(reading):
+    if not is_evaluated_measurement(reading):
         return FaultClassificationResult(
             "data_error", "Source reading is missing, invalid, or unevaluated."
         )
@@ -87,7 +68,7 @@ def classify_fault(
             or kind not in required_sensor_types
             or candidate.equipment_id != reading.equipment_id
             or candidate.inspection_id != reading.inspection_id
-            or not _has_evaluated_measurement(candidate)
+            or not is_evaluated_measurement(candidate)
         ):
             continue
 

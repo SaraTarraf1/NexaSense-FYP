@@ -5,7 +5,11 @@ import { sensorLabel } from "../utils/sensorLabels";
 import "./EquipmentAlerts.css";
 
 const REFRESH_MS = 5000;
-const ALERT_TYPES = { anomaly: "Sensor anomaly", fault: "Fault classification" };
+const ALERT_TYPES = {
+  anomaly: "Sensor anomaly",
+  fault: "Fault classification",
+  health: "Health assessment",
+};
 const SEVERITY_LABELS = { warning: "Warning", critical: "Critical" };
 const DELIVERY_LABELS = { pending: "Pending", delivered: "Delivered", failed: "Failed" };
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "medium" });
@@ -119,6 +123,9 @@ function EquipmentAlertItem({ equipmentId, alert }) {
             <dl className="equipment-alert-meta">
               <div><dt>Inspection</dt><dd>#{alert.inspection_id}</dd></div>
               <div><dt>Alert status</dt><dd>{alert.status}</dd></div>
+              {alert.health_assessment_id !== null && alert.health_assessment_id !== undefined && (
+                <div><dt>Health assessment</dt><dd>#{alert.health_assessment_id}</dd></div>
+              )}
             </dl>
             <div className="equipment-alert-detail-grid">
               <AlertEvidence equipmentId={equipmentId} alertId={alert.id} />

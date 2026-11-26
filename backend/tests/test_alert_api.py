@@ -14,6 +14,7 @@ from app.core.database import Base
 from app.models.alert import Alert
 from app.models.alert_notification import AlertNotification
 from app.models.equipment import Equipment
+from app.models.equipment_health_assessment import EquipmentHealthAssessment
 from app.models.fault_classification import FaultClassification
 from app.models.inspection import Inspection
 from app.models.sensor import Sensor
@@ -105,6 +106,22 @@ def alerts_client(monkeypatch):
             created_at=report_time,
         )
         db.add(critical)
+        assessment = EquipmentHealthAssessment(
+            equipment_id=equipment.id, inspection_id=active.id, trigger_reading_id=thermal.id,
+            status="critical", message="Current readings support a critical fault rule.",
+            assessed_at=report_time, evidence_reading_ids=[temperature.id, thermal.id],
+            fault_rule_ids=["DR-001"], missing_sensor_types=[],
+        )
+        db.add(assessment)
+        db.flush()
+        health_alert = Alert(
+            equipment_id=equipment.id, inspection_id=active.id, source_reading_id=thermal.id,
+            health_assessment_id=assessment.id, event_type="health", event_key="health:critical",
+            severity="critical", description="Equipment health is critical.",
+            evidence_reading_ids=assessment.evidence_reading_ids,
+            created_at=report_time - timedelta(seconds=5),
+        )
+        db.add(health_alert)
         db.flush()
         db.add_all([
             AlertNotification(alert_id=warning.id, recipient_user_id=owner.id),
@@ -124,6 +141,8 @@ def alerts_client(monkeypatch):
             "earlier_alert": earlier.id,
             "warning_alert": warning.id,
             "critical_alert": critical.id,
+            "health_alert": health_alert.id,
+            "assessment_id": assessment.id,
             "other_alert": other_alert.id,
             "temperature_reading": temperature.id,
             "thermal_reading": thermal.id,
@@ -160,13 +179,17 @@ def test_alert_list_is_paginated_and_preserves_failed_deliveries(alerts_client):
 
     response = client.get(
         records["endpoint"], headers=records["owner"],
-        params={"limit": 2, "before_id": page["next_before_id"]},
+        params={"limit": 3, "before_id": page["next_before_id"]},
     )
     assert response.status_code == 200
     page = response.json()
-    assert [alert["id"] for alert in page["items"]] == [records["warning_alert"], records["earlier_alert"]]
+    assert [alert["id"] for alert in page["items"]] == [
+        records["warning_alert"], records["health_alert"], records["earlier_alert"]
+    ]
     assert page["items"][0]["notifications"][0]["status"] == "pending"
-    assert page["items"][1]["notifications"] == []
+    assert page["items"][1]["event_type"] == "health"
+    assert page["items"][1]["health_assessment_id"] == records["assessment_id"]
+    assert page["items"][2]["notifications"] == []
     assert page["next_before_id"] is None
 
 

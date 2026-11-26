@@ -9,6 +9,7 @@ when generating database migrations.
 from app.models.user import User
 from app.models.revoked_token import RevokedToken
 from app.models.equipment import Equipment
+from app.models.equipment_health_assessment import EquipmentHealthAssessment
 from app.models.inspection import Inspection
 from app.models.sensor import Sensor
 from app.models.sensor_reading import SensorReading
@@ -20,6 +21,7 @@ __all__ = [
     "User",
     "RevokedToken",
     "Equipment",
+    "EquipmentHealthAssessment",
     "Inspection",
     "Sensor",
     "SensorReading",
