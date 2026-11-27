@@ -1,7 +1,7 @@
 
 const API_URL = "http://127.0.0.1:8000";
 
-async function inspectionRequest(endpoint, options = {}) {
+async function inspectionRequest(endpoint, { includeObservation = false, ...options } = {}) {
   const token = sessionStorage.getItem("nexasense_token");
 
   if (!token) {
@@ -34,9 +34,9 @@ async function inspectionRequest(endpoint, options = {}) {
     sessionStorage.removeItem("nexasense_token");
     window.location.replace("/login");
 
-    throw new Error(
-      "Your session has expired. Please log in again."
-    );
+    throw Object.assign(new Error("Your session has expired. Please log in again."), {
+      status: 401,
+    });
   }
 
   if (!response.ok) {
@@ -56,10 +56,13 @@ async function inspectionRequest(endpoint, options = {}) {
       // Keep the default error message.
     }
 
-    throw new Error(message);
+    throw Object.assign(new Error(message), { status: response.status });
   }
 
-  return response.json();
+  const data = await response.json();
+  return includeObservation
+    ? { readings: data, observed_at: response.headers.get("X-Observed-At") }
+    : data;
 }
 
 
@@ -95,10 +98,8 @@ export async function getAllInspections() {
 
 
 // GET /api/inspections/{inspection_id}
-export async function getInspectionById(inspectionId) {
-  return inspectionRequest(`/${inspectionId}`, {
-    method: "GET",
-  });
+export async function getInspectionById(inspectionId, { signal } = {}) {
+  return inspectionRequest(`/${inspectionId}`, { signal, cache: "no-store" });
 }
 
 
@@ -134,24 +135,21 @@ export function failInspection(inspectionId, failureReason) {
 // GET /api/inspections/{inspection_id}/readings
 export async function getInspectionReadings(
   inspectionId,
-  limit = 100
+  limit = 100,
+  { signal } = {}
 ) {
   return inspectionRequest(
     `/${inspectionId}/readings?limit=${limit}`,
-    {
-      method: "GET",
-    }
+    { signal, cache: "no-store" }
   );
 }
 
 
 // GET /api/inspections/{inspection_id}/readings/latest
-export async function getLatestSensorReadings(inspectionId) {
+export async function getLatestSensorReadings(inspectionId, { signal, includeObservation = false } = {}) {
   return inspectionRequest(
-    `/${inspectionId}/readings/latest`,
-    {
-      method: "GET",
-    }
+    `/${inspectionId}/readings/latest?validated_only=true`,
+    { signal, includeObservation, cache: "no-store" }
   );
 }
 

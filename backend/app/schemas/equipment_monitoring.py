@@ -59,8 +59,15 @@ class MonitoringHealthAssessmentResponse(MonitoringHealthHistoryEntry):
     missing_sensor_types: list[str]
 
 
+class MonitoringAlertSummary(BaseModel):
+    warning: int = 0
+    critical: int = 0
+
+
 class EquipmentMonitoringResponse(BaseModel):
     equipment_id: int
+    observed_at: datetime
+    alert_summary: MonitoringAlertSummary
     equipment_name: str
     equipment_type: str
     equipment_status: str

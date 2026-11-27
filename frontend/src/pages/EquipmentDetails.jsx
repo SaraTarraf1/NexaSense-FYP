@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import EquipmentAlerts from "../components/EquipmentAlerts";
 import EquipmentLayout from "../components/EquipmentLayout";
+import MonitoringConnection from "../components/MonitoringConnection";
 import { HealthStatusBadge } from "../components/EquipmentHealthAssessment";
 import { useEquipmentMonitoring } from "../hooks/useEquipmentMonitoring";
 import { getEquipmentById } from "../services/equipmentService";
@@ -55,6 +56,10 @@ function SensorCards() {
 
 export default function EquipmentDetails() {
   const { equipmentId } = useParams();
+  return <EquipmentDetailsView key={equipmentId} equipmentId={equipmentId} />;
+}
+
+function EquipmentDetailsView({ equipmentId }) {
   const { state } = useLocation();
   const [record, setRecord] = useState(null);
   const [error, setError] = useState("");
@@ -95,7 +100,8 @@ export default function EquipmentDetails() {
       <Link className="eq-back-button" to="/equipment"><span aria-hidden="true">←</span> Back to equipment</Link>
       {error && <div className="equipment-error" role="alert">{error} <button onClick={() => { setError(""); setAttempt(value => value + 1); }}>Try again</button> <Link to="/equipment">Back to equipment</Link></div>}
       {!equipment && !error && <p role="status">Loading equipment details...</p>}
-      {equipment && !error && <>
+      {equipment && !error && monitoringState.unavailable && <MonitoringConnection {...monitoringState} />}
+      {equipment && !error && !monitoringState.unavailable && <>
         {state?.success && <p className="equipment-success" role="status">{state.success}</p>}
         <header className="eq-profile-header">
           <div className="eq-profile-main">
@@ -117,15 +123,24 @@ export default function EquipmentDetails() {
           </div>
           <aside className="eq-health-summary">
             <p>Last recorded health</p>
+
+            {monitoringState.monitoring?.is_live &&
+             monitoringState.monitoring?.monitoring_status !== "current" && (
+              <small role="status">
+                Current health cannot be confirmed:
+                sensor data is stale or incomplete.
+             </small>
+          )}
             <strong><Icon name="health" /><HealthStatusBadge status={monitoringState.monitoring?.health_status} /></strong>
             <small>{healthAssessment
               ? formatDate(healthAssessment.assessed_at)
               : "Awaiting an assessment for this inspection"}</small>
           </aside>
         </header>
+        <MonitoringConnection {...monitoringState} />
         <div className="eq-detail-tabs" role="tablist" aria-label="Equipment details">{tabs.map(([value, label], index) => <button key={value} id={`eq-tab-${value}`} role="tab" aria-selected={tab === value} aria-controls="eq-detail-panel" tabIndex={tab === value ? 0 : -1} onKeyDown={event => tabKeyDown(event, index)} onClick={() => setTab(value)}>{label}</button>)}</div>
         <div id="eq-detail-panel" role="tabpanel" aria-labelledby={`eq-tab-${tab}`} tabIndex={0}>
-          {tab === "overview" && <EquipmentMonitoringPanel {...monitoringState} />}
+          {tab === "overview" && <EquipmentMonitoringPanel {...monitoringState} onOpenAlerts={() => setTab("alerts")} />}
           {tab === "sensors" && <><SensorCards /><div className="eq-history-full">{trend}</div></>}
           {tab === "health" && <EquipmentMonitoringPanel {...monitoringState} healthAndFaults />}
           {tab === "inspections" && <section className="eq-detail-card"><h2>Inspections</h2><EmptyState title="Inspection history is unavailable">Inspections for this equipment will appear when the inspection service is connected.</EmptyState></section>}

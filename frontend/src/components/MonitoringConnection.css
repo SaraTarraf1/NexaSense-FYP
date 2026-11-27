@@ -1,0 +1,52 @@
+.monitoring-connection {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #465b76;
+  font-size: 13px;
+}
+
+.monitoring-connection p {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.monitoring-connection strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.monitoring-connection strong::before {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.monitoring-connection.connected strong {
+  color: #166534;
+}
+
+.monitoring-connection.disconnected,
+.monitoring-connection.unavailable {
+  border-color: #f2dc9d;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.monitoring-last-sync {
+  font-variant-numeric: tabular-nums;
+}

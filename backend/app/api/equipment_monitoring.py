@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -26,6 +26,7 @@ router = APIRouter(
 )
 def monitor_equipment(
     equipment_id: int,
+    response: Response,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -42,4 +43,5 @@ def monitor_equipment(
             detail="Equipment not found.",
         )
 
+    response.headers["Cache-Control"] = "no-store"
     return get_equipment_monitoring(db, equipment)
