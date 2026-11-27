@@ -279,3 +279,20 @@
 
 .monitoring-page.monitoring-embedded { padding: 0; max-width: none; }
 .monitoring-header h2 { margin: 0 0 8px; font-size: 24px; }
+
+.monitoring-alert-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+}
+
+.monitoring-alert-summary h2 {
+  margin: 0 0 8px;
+}
+
+.monitoring-alert-summary p {
+  margin: 0;
+  color: #465b76;
+}

@@ -9,19 +9,13 @@ function formatDate(value) {
   return value ? new Date(value).toLocaleString() : "Not available";
 }
 
-export function EquipmentMonitoringPanel({ monitoring, loading, error, healthAndFaults = false }) {
+export function EquipmentMonitoringPanel({ monitoring, loading, onOpenAlerts, healthAndFaults = false }) {
   return (
     <section
       className="monitoring-page monitoring-embedded"
       aria-label={healthAndFaults ? "Equipment health and faults" : "Equipment monitoring"}
     >
         {loading && <p role="status">Loading monitoring data...</p>}
-
-        {error && (
-          <div className="monitoring-error" role="alert">
-            {error}
-          </div>
-        )}
 
         {monitoring && healthAndFaults && (
           <div className="eq-health-grid">
@@ -64,6 +58,18 @@ export function EquipmentMonitoringPanel({ monitoring, loading, error, healthAnd
                   {monitoring.is_live ? "Live" : "Historical"}
                 </strong>
               </article>
+            </section>
+
+            <section className="monitoring-section monitoring-alert-summary">
+              <div>
+                <h2>Equipment open alerts</h2>
+                <p>
+                  <strong>{monitoring.alert_summary.critical}</strong> critical
+                  <span aria-hidden="true"> · </span>
+                  <strong>{monitoring.alert_summary.warning}</strong> warning
+                </p>
+              </div>
+              <button type="button" className="eq-text-link" onClick={onOpenAlerts}>View alerts</button>
             </section>
 
             <section className="monitoring-section">
@@ -145,7 +151,6 @@ export function EquipmentMonitoringPanel({ monitoring, loading, error, healthAnd
                 {" "}{formatDate(monitoring.last_valid_reading_at)}
               </p>
 
-              <p>Automatically refreshes every 5 seconds.</p>
             </footer>
           </>
         )}

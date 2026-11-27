@@ -1,6 +1,7 @@
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user, get_db
@@ -9,7 +10,6 @@ from app.models.sensor import Sensor
 from app.models.sensor_reading import SensorReading
 from app.models.user import User
 from app.schemas.sensor_reading import SensorReadingResponse
-
 
 router = APIRouter(
     prefix="/api/inspections",
@@ -41,6 +41,7 @@ def verify_inspection_access(
 def serialize_reading(
     reading: SensorReading,
     sensor_type: str,
+    freshness_threshold_seconds: int | None = None,
 ) -> SensorReadingResponse:
     return SensorReadingResponse(
         id=reading.id,
@@ -53,6 +54,7 @@ def serialize_reading(
         timestamp=reading.timestamp,
         validation_status=reading.validation_status,
         validation_message=reading.validation_message,
+        freshness_threshold_seconds=freshness_threshold_seconds,
     )
 
 
@@ -66,7 +68,7 @@ def list_sensor_readings(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    verify_inspection_access(
+    inspection = verify_inspection_access(
         db,
         inspection_id,
         current_user.id,
@@ -75,7 +77,10 @@ def list_sensor_readings(
     rows = db.execute(
         select(SensorReading, Sensor.sensor_type)
         .join(Sensor, SensorReading.sensor_id == Sensor.id)
-        .where(SensorReading.inspection_id == inspection_id)
+        .where(
+            SensorReading.inspection_id == inspection_id,
+            SensorReading.equipment_id == inspection.equipment_id,
+        )
         .order_by(
             SensorReading.timestamp.desc(),
             SensorReading.id.desc(),
@@ -88,39 +93,73 @@ def list_sensor_readings(
         for reading, sensor_type in rows
     ]
 
-
 @router.get(
     "/{inspection_id}/readings/latest",
     response_model=list[SensorReadingResponse],
 )
 def latest_sensor_readings(
     inspection_id: int,
+    response: Response,
+    validated_only: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    verify_inspection_access(
+    inspection = verify_inspection_access(
         db,
         inspection_id,
         current_user.id,
     )
 
+    now = datetime.now(timezone.utc)
+    response.headers["X-Observed-At"] = now.isoformat()
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Access-Control-Expose-Headers"] = "X-Observed-At"
+
+    readings = select(
+        SensorReading.id,
+        func.row_number().over(
+            partition_by=SensorReading.sensor_id,
+            order_by=(
+                SensorReading.timestamp.desc(),
+                SensorReading.id.desc(),
+            ),
+        ).label("sensor_rank"),
+    ).where(
+        SensorReading.inspection_id == inspection_id,
+        SensorReading.equipment_id == inspection.equipment_id,
+    )
+
+    if validated_only:
+        readings = readings.where(
+            SensorReading.validation_status == "valid",
+            SensorReading.value.is_not(None),
+            SensorReading.timestamp <= now,
+        )
+
+    ranked = readings.subquery()
+
     rows = db.execute(
-        select(SensorReading, Sensor.sensor_type)
-        .join(Sensor, SensorReading.sensor_id == Sensor.id)
-        .where(SensorReading.inspection_id == inspection_id)
+        select(SensorReading, Sensor)
+        .join(
+            ranked,
+            ranked.c.id == SensorReading.id,
+        )
+        .join(
+            Sensor,
+            SensorReading.sensor_id == Sensor.id,
+        )
+        .where(ranked.c.sensor_rank == 1)
         .order_by(
             SensorReading.timestamp.desc(),
             SensorReading.id.desc(),
         )
-    ).all()
+    )
 
-    latest_by_sensor = {}
-
-    for reading, sensor_type in rows:
-        if sensor_type not in latest_by_sensor:
-            latest_by_sensor[sensor_type] = serialize_reading(
-                reading,
-                sensor_type,
-            )
-
-    return list(latest_by_sensor.values())
+    return [
+        serialize_reading(
+            reading,
+            sensor.sensor_type,
+            sensor.collection_interval_seconds * 3,
+        )
+        for reading, sensor in rows
+    ]

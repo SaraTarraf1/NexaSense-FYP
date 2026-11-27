@@ -15,5 +15,6 @@ class SensorReadingResponse(BaseModel):
     timestamp: datetime
     validation_status: str
     validation_message: str | None
+    freshness_threshold_seconds: int | None = None
 
     model_config = ConfigDict(from_attributes=True)

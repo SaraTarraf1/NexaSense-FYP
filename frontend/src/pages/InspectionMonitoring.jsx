@@ -1,8 +1,10 @@
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import EquipmentLayout from "../components/EquipmentLayout.jsx";
+import MonitoringConnection from "../components/MonitoringConnection.jsx";
+import { useMonitoringClock, useMonitoringPoll } from "../hooks/useMonitoringPoll.js";
 import ScheduledInspectionAction from "../components/ScheduledInspectionAction.jsx";
 
 import {
@@ -24,32 +26,67 @@ const SENSOR_TYPES = [
   { type: "thermal", label: "Thermal", icon: "🔥" },
 ];
 
+const monotonicNow = () => performance.now();
+
 function formatDate(value) {
   return value ? new Date(value).toLocaleString() : "—";
 }
 
+async function readInspection(inspectionId, signal) {
+  const inspection = await getInspectionById(inspectionId, { signal });
+  if (inspection.id !== inspectionId) {
+    throw new Error("The monitoring update did not match this inspection.");
+  }
+  if (!inspection.started_at) return { inspection, latest: [], history: [] };
+
+  const [latest, history] = await Promise.all([
+    getLatestSensorReadings(inspectionId, { signal, includeObservation: true }),
+    getInspectionReadings(inspectionId, 30, { signal }),
+  ]);
+  if (!Number.isFinite(Date.parse(latest.observed_at))) {
+    throw new Error("The monitoring update contains an invalid timestamp.");
+  }
+
+  function matchingReadings(readings) {
+    const matching = readings.filter((item) =>
+      item.equipment_id === inspection.equipment_id && item.inspection_id === inspection.id
+    );
+    return Array.from(new Map(matching.map((item) => [item.id, item])).values());
+  }
+  return {
+    inspection,
+    latest: matchingReadings(latest.readings),
+    history: matchingReadings(history),
+    observed_at: latest.observed_at,
+  };
+}
+
+function hasInspectionUpdates({ inspection }) {
+  return inspection.status === "active" || inspection.status === "scheduled";
+}
+
 export default function InspectionMonitoring() {
   const { inspectionId } = useParams();
-  return <InspectionDetails key={inspectionId} inspectionId={inspectionId} />;
+  return <InspectionDetails key={inspectionId} inspectionId={Number(inspectionId)} />;
 }
 
 function InspectionDetails({ inspectionId }) {
-  const [inspection, setInspection] = useState(null);
-  const [latest, setLatest] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
-  const [now, setNow] = useState(Date.now);
+  const { data, updateData, receivedMonotonicAt, ...connection } = useMonitoringPoll(inspectionId, readInspection, {
+    enabled: !processing,
+    shouldContinue: hasInspectionUpdates,
+  });
+  const { inspection, latest = [], history = [] } = data ?? {};
   const isScheduled = inspection?.status === "scheduled";
+  const isActive = inspection?.status === "active";
   const cancelledBooking = inspection?.status === "cancelled" && !inspection.started_at;
-
-  useEffect(() => {
-    if (!isScheduled) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [isScheduled]);
+  const now = useMonitoringClock(isScheduled, connection.receivedAt);
+  const elapsedClock = useMonitoringClock(isActive, receivedMonotonicAt, monotonicNow);
+  const observedAt = Date.parse(data?.observed_at);
+  const serverNow = receivedMonotonicAt != null
+    ? observedAt + (elapsedClock - receivedMonotonicAt)
+    : NaN;
 
   async function handleBookingAction(action) {
     if (processing) return;
@@ -59,53 +96,14 @@ function InspectionDetails({ inspectionId }) {
     setActionError("");
     const request = action === "start" ? startScheduledInspection : cancelInspectionBooking;
     try {
-      setInspection(await request(inspectionId));
+      const inspection = await request(inspectionId);
+      updateData((data) => ({ ...data, inspection }));
     } catch (err) {
       setActionError(err.message);
     } finally {
       setProcessing(false);
     }
   }
-
-  useEffect(() => {
-    if (processing) return;
-    let cancelled = false;
-
-    async function refresh() {
-      try {
-        const [inspectionData, latestData, historyData] =
-          await Promise.all([
-            getInspectionById(inspectionId),
-            getLatestSensorReadings(inspectionId),
-            getInspectionReadings(inspectionId, 30),
-          ]);
-
-        if (cancelled) return;
-
-        setInspection(inspectionData);
-        setLatest(latestData);
-        setHistory(historyData);
-        setError("");
-      } catch (err) {
-        if (!cancelled) {
-          setError(err.message);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    refresh();
-
-    const interval = window.setInterval(refresh, 5000);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [inspectionId, processing]);
 
   async function handleFinish(action) {
     const outcomes = {
@@ -123,33 +121,16 @@ function InspectionDetails({ inspectionId }) {
     }
 
     setProcessing(true);
-    setError("");
+    setActionError("");
 
     try {
-      const updated = await request(inspectionId, failureReason);
-
-      setInspection(updated);
-
-      const [latestData, historyData] = await Promise.all([
-        getLatestSensorReadings(inspectionId),
-        getInspectionReadings(inspectionId, 30),
-      ]);
-
-      setLatest(latestData);
-      setHistory(historyData);
+      const inspection = await request(inspectionId, failureReason);
+      updateData((data) => ({ ...data, inspection }));
     } catch (err) {
-      setError(err.message);
+      setActionError(err.message);
     } finally {
       setProcessing(false);
     }
-  }
-
-  if (loading) {
-    return (
-      <EquipmentLayout breadcrumb="Live Monitoring">
-        <p>Loading inspection...</p>
-      </EquipmentLayout>
-    );
   }
 
   return (
@@ -169,17 +150,14 @@ function InspectionDetails({ inspectionId }) {
           )}
         </div>
 
-        {error && (
-          <div className="inspections-error" role="alert">
-            {error}
-          </div>
-        )}
+        {(isActive || isScheduled || !data || connection.error) && <MonitoringConnection {...connection} />}
+        {actionError && <p className="inspections-error" role="alert">{actionError}</p>}
 
         {inspection && (
           <section className="monitoring-details">
             <div>
               <span>Equipment ID</span>
-              <strong>#{inspection.equipment_id}</strong>
+              <Link to={`/equipment/${inspection.equipment_id}`}>#{inspection.equipment_id} · Equipment monitoring</Link>
             </div>
             {inspection.scheduled_at && (
               <div>
@@ -222,7 +200,6 @@ function InspectionDetails({ inspectionId }) {
               onStart={() => handleBookingAction("start")}
               onCancel={() => handleBookingAction("cancel")}
             />
-            {actionError && <p className="inspections-error" role="alert">{actionError}</p>}
           </section>
         )}
 
@@ -230,17 +207,20 @@ function InspectionDetails({ inspectionId }) {
           <>
             <div className="monitoring-section-title">
               <h2>Sensor Measurements</h2>
-              <span>
-                {inspection?.status === "active"
-                  ? "Refreshing every 5 seconds"
-                  : "Final recorded measurements"}
-              </span>
+              <span>{isActive ? "Latest validated readings" : "Final validated readings"}</span>
             </div>
 
             <section className="monitoring-sensors">
               {SENSOR_TYPES.map((sensor) => {
                 const reading = latest.find(
                   (item) => item.sensor_type === sensor.type
+                );
+
+                const age = serverNow - Date.parse(reading?.timestamp);
+                const threshold = reading?.freshness_threshold_seconds * 1000;
+                const stale = isActive && reading && (
+                  !Number.isFinite(age) || age < 0
+                  || !Number.isFinite(threshold) || threshold <= 0 || age > threshold
                 );
 
                 return (
@@ -262,14 +242,14 @@ function InspectionDetails({ inspectionId }) {
 
                     <span
                       className={`monitoring-validation ${
-                        reading?.validation_status || "missing"
+                        stale ? "stale" : reading ? "valid" : "missing"
                       }`}
                     >
-                      {reading?.validation_status || "No data"}
+                      {stale ? "Stale" : reading ? "Valid" : "No data"}
                     </span>
 
                     <p>
-                      Last updated: {formatDate(reading?.timestamp)}
+                      Last valid reading: {formatDate(reading?.timestamp)}
                     </p>
                   </article>
                 );

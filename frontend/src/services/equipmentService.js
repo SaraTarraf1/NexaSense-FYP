@@ -28,7 +28,10 @@ async function equipmentRequest(endpoint, options = {}) {
   if (response.status === 401) {
     sessionStorage.removeItem("nexasense_token");
     window.location.replace("/login");
-    throw new Error("Your session has expired. Please log in again.");
+
+    throw Object.assign(new Error("Your session has expired. Please log in again."), {
+      status: 401,
+    });
   }
 
   if (!response.ok) {
@@ -48,7 +51,7 @@ async function equipmentRequest(endpoint, options = {}) {
       // Use the default error message.
     }
 
-    throw new Error(message);
+    throw Object.assign(new Error(message), { status: response.status });
   }
 
   return response.status === 204 ? null : response.json();
@@ -91,7 +94,7 @@ export async function deleteEquipment(equipmentId) {
 
 // GET /api/equipment/{equipment_id}/monitoring
 export function getEquipmentMonitoring(equipmentId, { signal } = {}) {
-  return equipmentRequest(`/${equipmentId}/monitoring`, { signal });
+  return equipmentRequest(`/${equipmentId}/monitoring`, { signal, cache: "no-store" });
 }
 
 export function getEquipmentAlerts(equipmentId, { beforeId = null, signal } = {}) {
