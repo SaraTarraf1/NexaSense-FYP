@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.alerts import router as alerts_router
 from app.api.auth import router as auth_router
+from app.api.dashboard import router as dashboard_router
 from app.api.equipment import router as equipment_router
 from app.api.inspections import router as inspections_router
 from app.api.history import router as history_router
@@ -54,6 +55,7 @@ app.include_router(equipment_monitoring_router)
 app.include_router(alerts_router)
 app.include_router(history_router)
 app.include_router(reports_router)
+app.include_router(dashboard_router)
 
 @app.get("/")
 def root():

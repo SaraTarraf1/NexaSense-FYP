@@ -885,4 +885,4 @@ The latest verified merged `main` commit for these features was `4cf466b` (pull 
 
 **Next: User Story 5 — Equipment Monitoring.** Build an equipment-level view of the latest sensor readings, measurement trends and monitoring history using the existing equipment profiles and inspection data. AI anomaly detection, fault classification, alerting, robot navigation, real Raspberry Pi sensors and MQTT remain future work.
 
-For the current prototype APIs, setup, and demonstration steps for History and Reports, see the [prototype workflows](docs/prototype-workflows.md).
+For the current prototype APIs, setup, and demonstration steps for History, Reports, and Dashboard, see the [prototype workflows](docs/prototype-workflows.md).

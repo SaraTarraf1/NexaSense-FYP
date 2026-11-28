@@ -1,6 +1,7 @@
 from collections import defaultdict
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
@@ -8,6 +9,7 @@ from app.api.auth import get_current_user, get_db
 from app.models.alert import Alert
 from app.models.alert_notification import AlertNotification
 from app.models.equipment import Equipment
+from app.models.inspection import Inspection
 from app.models.sensor import Sensor
 from app.models.sensor_reading import SensorReading
 from app.models.user import User
@@ -67,20 +69,27 @@ def _alert_responses(
     return responses
 
 
+def owned_alerts(equipment: Equipment):
+    return select(Alert).join(
+        Inspection, (Inspection.id == Alert.inspection_id) & (Inspection.equipment_id == Alert.equipment_id)
+    ).where(Alert.equipment_id == equipment.id, Inspection.user_id == equipment.user_id)
+
+
 @router.get("/{equipment_id}/alerts", response_model=AlertPageResponse)
 def list_equipment_alerts(
     limit: int = Query(default=50, ge=1, le=100),
     before_id: int | None = Query(default=None, ge=1),
+    status: Literal["open", "closed"] | None = None,
     equipment: Equipment = Depends(_get_owned_equipment),
     db: Session = Depends(get_db),
 ):
     """List saved alerts for the equipment, most recent first."""
-    query = select(Alert).where(Alert.equipment_id == equipment.id)
+    query = owned_alerts(equipment)
+    if status:
+        query = query.where(Alert.status == status)
     if before_id is not None:
         cursor_time = db.scalar(
-            select(Alert.created_at).where(
-                Alert.equipment_id == equipment.id, Alert.id == before_id
-            )
+            owned_alerts(equipment).with_only_columns(Alert.created_at).where(Alert.id == before_id)
         )
         if cursor_time is None:
             raise HTTPException(status_code=404, detail="Alert cursor not found.")
@@ -107,9 +116,7 @@ def get_equipment_alert(
     db: Session = Depends(get_db),
 ):
     """Read a saved alert and its supporting measurements."""
-    alert = db.scalar(
-        select(Alert).where(Alert.equipment_id == equipment.id, Alert.id == alert_id)
-    )
+    alert = db.scalar(owned_alerts(equipment).where(Alert.id == alert_id))
     if alert is None:
         raise HTTPException(status_code=404, detail="Alert not found.")
 
@@ -121,7 +128,8 @@ def get_equipment_alert(
             SensorReading.equipment_id == equipment.id,
             SensorReading.inspection_id == alert.inspection_id,
             SensorReading.validation_status == "valid",
-            SensorReading.value.is_not(None),
+            SensorReading.value > float("-inf"),
+            SensorReading.value < float("inf"),
         )
     )
     by_reading = {
@@ -144,3 +152,18 @@ def get_equipment_alert(
             if reading_id in by_reading
         ],
     )
+
+
+@router.post("/{equipment_id}/alerts/{alert_id}/close", status_code=204)
+def close_equipment_alert(
+    alert_id: int,
+    equipment: Equipment = Depends(_get_owned_equipment),
+    db: Session = Depends(get_db),
+):
+    alert = db.scalar(owned_alerts(equipment).where(Alert.id == alert_id).with_for_update(of=Alert))
+    if alert is None:
+        raise HTTPException(404, "Alert not found.")
+    if alert.status == "open":
+        alert.status = "closed"
+    db.commit()
+    return Response(status_code=204)

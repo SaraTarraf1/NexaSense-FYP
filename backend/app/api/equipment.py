@@ -178,7 +178,7 @@ def update_equipment(
 
     updates = equipment_data.model_dump(exclude_unset=True)
 
-    required_fields = {"name", "equipment_type", "location", "identifier"}
+    required_fields = {"name", "equipment_type", "location", "identifier", "status"}
     for field in required_fields:
         if field in updates and updates[field] is None:
             raise HTTPException(

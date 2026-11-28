@@ -312,20 +312,14 @@ export default function Equipment({ defaultAddOpen = false }) {
             </select>
           </label>
 
-          <button
-            className={`equipment-status-filter${
-              status ? " selected" : ""
-            }`}
-            onClick={() =>
-              filter(setStatus, status ? "" : "active")
-            }
-            aria-pressed={Boolean(status)}
-          >
-            Status: {status ? "Active" : "All"}
-            <span aria-hidden="true">
-              {status ? "×" : "+"}
-            </span>
-          </button>
+          <label className="equipment-filter">
+            <span>Status:</span>
+            <select aria-label="Filter by status" value={status} onChange={event => filter(setStatus, event.target.value)}>
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </label>
         </div>
 
         <div className="equipment-view-row">

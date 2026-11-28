@@ -5,7 +5,7 @@ import EquipmentLayout from "../components/EquipmentLayout";
 import MonitoringConnection from "../components/MonitoringConnection";
 import { HealthStatusBadge } from "../components/EquipmentHealthAssessment";
 import { useEquipmentMonitoring } from "../hooks/useEquipmentMonitoring";
-import { getEquipmentById } from "../services/equipmentService";
+import { getEquipmentById, updateEquipment } from "../services/equipmentService";
 import "./EquipmentDetails.css";
 import { EquipmentMonitoringPanel } from "./EquipmentMonitoring";
 
@@ -43,6 +43,8 @@ function EquipmentDetailsView({ equipmentId }) {
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState("overview");
+  const [changingStatus, setChangingStatus] = useState(false);
+  const [statusError, setStatusError] = useState("");
   useEffect(() => {
     let active = true;
     getEquipmentById(equipmentId).then(data => { if (active) { setRecord(data); setError(""); } })
@@ -52,6 +54,20 @@ function EquipmentDetailsView({ equipmentId }) {
   const equipment = record?.id === Number(equipmentId) ? record : null;
   const monitoringState = useEquipmentMonitoring(equipment?.id);
   const healthAssessment = monitoringState.monitoring?.health_assessment;
+
+  async function toggleStatus() {
+    setChangingStatus(true);
+    setStatusError("");
+    try {
+      setRecord(await updateEquipment(equipment.id, {
+        status: equipment.status === "active" ? "inactive" : "active",
+      }));
+    } catch (error) {
+      setStatusError(error.message);
+    } finally {
+      setChangingStatus(false);
+    }
+  }
 
   function tabKeyDown(event, index) {
     let next;
@@ -75,7 +91,7 @@ function EquipmentDetailsView({ equipmentId }) {
         {state?.success && <p className="equipment-success" role="status">{state.success}</p>}
         <header className="eq-profile-header">
           <div className="eq-profile-main">
-            <div className="eq-profile-code">{equipment.identifier}<span className="equipment-badge active">{equipment.status}</span></div>
+            <div className="eq-profile-code">{equipment.identifier}<span className={`equipment-badge ${equipment.status}`}>{equipment.status}</span></div>
             <h1>{equipment.name}</h1>
             <div className="equipment-meta">{[equipment.equipment_type, equipment.location, [equipment.manufacturer, equipment.model].filter(Boolean).join(" "), equipment.installation_date && `Installed ${formatDate(equipment.installation_date, true)}`].filter(Boolean).map((value, index) => <span key={index}>{value}</span>)}</div>
             <div className="eq-profile-actions">
@@ -89,7 +105,11 @@ function EquipmentDetailsView({ equipmentId }) {
               </>}
               <Link to={`/reports?equipment=${equipment.id}`}><Icon name="report" />Reports</Link>
               <Link to={`/equipment/${equipment.id}/edit`}>Edit equipment</Link>
+              <button type="button" onClick={toggleStatus} disabled={changingStatus}>
+                {changingStatus ? "Saving…" : equipment.status === "active" ? "Deactivate equipment" : "Activate equipment"}
+              </button>
             </div>
+            {statusError && <p className="equipment-error" role="alert">{statusError}</p>}
           </div>
           <aside className="eq-health-summary">
             <p>Last recorded health</p>
