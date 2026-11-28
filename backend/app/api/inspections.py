@@ -111,7 +111,8 @@ def list_inspections(
 ):
     inspections = db.scalars(
         select(Inspection)
-        .where(Inspection.user_id == current_user.id)
+        .join(Equipment, Equipment.id == Inspection.equipment_id)
+        .where(Inspection.user_id == current_user.id, Equipment.user_id == current_user.id)
         .order_by(func.coalesce(Inspection.started_at, Inspection.scheduled_at).desc(), Inspection.id.desc())
     ).all()
     blockers = inspection_start_blockers(
@@ -160,9 +161,10 @@ def get_inspection(
     current_user: User = Depends(get_current_user),
 ):
     inspection = db.scalar(
-        select(Inspection).where(
+        select(Inspection).join(Equipment, Equipment.id == Inspection.equipment_id).where(
             Inspection.id == inspection_id,
             Inspection.user_id == current_user.id,
+            Equipment.user_id == current_user.id,
         )
     )
 

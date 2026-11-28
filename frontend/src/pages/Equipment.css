@@ -122,7 +122,7 @@
   .equipment-sidebar { position: static; width: auto; padding: 16px 20px; flex-direction: row; align-items: center; justify-content: space-between; gap: 20px; border-right: 0; border-bottom: 1px solid #e7ecf3; }
   .equipment-brand { margin: 0; }
   .equipment-sidebar > .equipment-eyebrow, .equipment-robot { display: none; }
-  .equipment-sidebar nav { display: flex; }
+  .equipment-sidebar nav { display: flex; flex-wrap: wrap; }
   .equipment-workspace-body { margin-left: 0; }
   .equipment-editor-layout { grid-template-columns: minmax(0, 1fr); }
   .equipment-editor-intro { display: none; }
@@ -132,7 +132,7 @@
 @media (max-width: 600px) {
   .equipment-sidebar { padding: 14px 16px; flex-wrap: wrap; gap: 12px; }
   .equipment-sidebar nav a { padding: 9px 12px; }
-  .equipment-sidebar nav { margin-left: auto; }
+  .equipment-sidebar nav { width: 100%; }
   .equipment-brand small { display: none; }
   .equipment-brand strong { font-size: 15px; }
   .equipment-topbar { --reminders-gutter: 16px; min-height: 48px; padding: 10px 16px; }

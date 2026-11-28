@@ -37,6 +37,7 @@ function getTokenExpiration(token) {
 
 export default function ProtectedRoute() {
   const [status, setStatus] = useState("checking");
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -84,6 +85,7 @@ export default function ProtectedRoute() {
         if (!response.ok) {
           throw new Error("Session validation failed");
         }
+        const account = await response.json();
 
         if (cancelled) return;
 
@@ -93,6 +95,7 @@ export default function ProtectedRoute() {
           throw new Error("Session expired");
         }
 
+        setUser(account);
         setStatus("authenticated");
 
         expirationTimer = window.setTimeout(
@@ -161,5 +164,5 @@ export default function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
-  return <InspectionReminderOutlet />;
+  return <InspectionReminderOutlet user={user} />;
 }

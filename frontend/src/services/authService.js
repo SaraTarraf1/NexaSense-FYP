@@ -1,6 +1,23 @@
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
+export async function logoutUser() {
+  const token = sessionStorage.getItem("nexasense_token");
+  try {
+    if (token) {
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(5000),
+      });
+    }
+  } catch {
+    // End the local session even if the service cannot revoke the token.
+  } finally {
+    sessionStorage.removeItem("nexasense_token");
+  }
+}
+
 export async function registerUser(formData) {
   const response = await fetch(
     `${API_BASE_URL}/api/auth/register`,

@@ -4,7 +4,7 @@ import { Link, Outlet, useOutletContext } from "react-router-dom";
 import { getInspectionReminders } from "../services/inspectionService.js";
 import "./InspectionReminders.css";
 
-export function InspectionReminderOutlet() {
+export function InspectionReminderOutlet({ user }) {
   const [reminders, setReminders] = useState([]);
 
   useEffect(() => {
@@ -32,11 +32,11 @@ export function InspectionReminderOutlet() {
     };
   }, []);
 
-  return <Outlet context={reminders} />;
+  return <Outlet context={{ reminders, user }} />;
 }
 
 export default function InspectionReminders() {
-  const reminders = useOutletContext() ?? [];
+  const { reminders = [] } = useOutletContext() ?? {};
   const [open, setOpen] = useState(false);
   const container = useRef(null);
   const trigger = useRef(null);

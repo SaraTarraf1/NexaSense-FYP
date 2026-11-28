@@ -1,5 +1,9 @@
 const API_URL = "http://127.0.0.1:8000";
 
+export function getDashboard(_resourceId, signal) {
+  return workspaceRequest("/dashboard", { signal });
+}
+
 export async function workspaceRequest(endpoint, { pdf = false, ...options } = {}) {
   const token = sessionStorage.getItem("nexasense_token");
   let response;

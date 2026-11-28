@@ -7,6 +7,7 @@ const continuePolling = () => true;
 export function useMonitoringPoll(resourceId, read, {
   enabled = true,
   shouldContinue = continuePolling,
+  interval = POLL_INTERVAL_MS,
 } = {}) {
   const [snapshot, setSnapshot] = useState(null);
   const lastObservation = useRef(null);
@@ -67,7 +68,7 @@ export function useMonitoringPoll(resourceId, read, {
         controller.abort();
         request = null;
         window.clearTimeout(timeout);
-        if (!stopped && !terminal && !finished) timer = window.setTimeout(poll, POLL_INTERVAL_MS);
+        if (!stopped && !terminal && !finished) timer = window.setTimeout(poll, interval);
       }
     }
 
@@ -86,7 +87,7 @@ export function useMonitoringPoll(resourceId, read, {
       window.clearTimeout(timer);
       window.removeEventListener("online", reconnect);
     };
-  }, [resourceId, read, enabled, shouldContinue]);
+  }, [resourceId, read, enabled, shouldContinue, interval]);
 
   const updateData = useCallback((update) => {
     setSnapshot((previous) => previous?.resourceId === resourceId && previous.data

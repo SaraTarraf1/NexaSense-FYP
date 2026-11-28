@@ -228,6 +228,7 @@ def finish_inspection(
         .where(
             Inspection.id == inspection_id,
             Inspection.user_id == user_id,
+            Inspection.equipment_id.in_(select(Equipment.id).where(Equipment.user_id == user_id)),
         )
         .with_for_update()
     )

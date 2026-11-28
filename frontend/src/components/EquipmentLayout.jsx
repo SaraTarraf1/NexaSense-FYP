@@ -1,7 +1,39 @@
 ﻿
-import { Link, NavLink } from "react-router-dom";
+import { useState } from "react";
+import { Link, NavLink, useNavigate, useOutletContext } from "react-router-dom";
 import InspectionReminders from "./InspectionReminders.jsx";
+import { logoutUser } from "../services/authService.js";
 import "../pages/Equipment.css";
+
+const links = [
+  ["/dashboard", "Dashboard"], ["/equipment", "Equipment"], ["/inspections", "Inspections"],
+  ["/monitoring", "Monitoring"], ["/alerts", "Alerts"], ["/history", "History"], ["/reports", "Reports"],
+];
+
+function AccountMenu() {
+  const { user } = useOutletContext() ?? {};
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  if (!user) return null;
+
+  async function logout() {
+    setBusy(true);
+    try {
+      await logoutUser();
+    } finally {
+      navigate("/login", { replace: true });
+    }
+  }
+
+  return <details className="equipment-account">
+    <summary>{user.full_name}</summary>
+    <div className="equipment-account-panel">
+      <strong>{user.email}</strong>
+      <span>{user.role}</span>
+      <button type="button" onClick={logout} disabled={busy}>{busy ? "Logging out…" : "Log out"}</button>
+    </div>
+  </details>;
+}
 
 export default function EquipmentLayout({
   children,
@@ -24,34 +56,9 @@ export default function EquipmentLayout({
 
         {/* Navigation */}
         <nav aria-label="Workspace">
-          <NavLink
-            to="/dashboard"
-            className={({ isActive }) =>
-              isActive ? "selected" : ""
-            }
-          >
-            Dashboard
-          </NavLink>
-
-          <NavLink
-            to="/equipment"
-            className={({ isActive }) =>
-              isActive ? "selected" : ""
-            }
-          >
-            Equipment
-          </NavLink>
-
-          <NavLink
-            to="/inspections"
-            className={({ isActive }) =>
-              isActive ? "selected" : ""
-            }
-          >
-            Inspections
-          </NavLink>
-          <NavLink to="/history">History</NavLink>
-          <NavLink to="/reports">Reports</NavLink>
+          {links.map(([path, name]) => <NavLink to={path} key={path} className={({ isActive }) => isActive ? "selected" : ""}>
+            {name}
+          </NavLink>)}
         </nav>
 
         {/* Robot Connection */}
@@ -73,22 +80,8 @@ export default function EquipmentLayout({
       <div className="equipment-workspace-body">
         {/* Top Navigation */}
         <div className="equipment-topbar">
-          <span>
-            <Link to="/dashboard">Home</Link>
-            {" / "}
-
-            {breadcrumb === "Equipment" ? (
-              <span>Equipment</span>
-            ) : (
-              <>
-                <Link to="/inspections">Inspections</Link>
-                {" / "}
-                {breadcrumb}
-              </>
-            )}
-          </span>
-
-          <InspectionReminders />
+          <span><Link to="/dashboard">Home</Link> / <span>{breadcrumb}</span></span>
+          <div className="equipment-topbar-actions"><InspectionReminders /><AccountMenu /></div>
         </div>
 
         {/* Page Content */}

@@ -103,12 +103,17 @@ export function getEquipmentMonitoring(equipmentId, { signal } = {}) {
   return equipmentRequest(`/${equipmentId}/monitoring`, { signal, cache: "no-store" });
 }
 
-export function getEquipmentAlerts(equipmentId, { beforeId = null, signal } = {}) {
+export function getEquipmentAlerts(equipmentId, { beforeId = null, status, signal } = {}) {
   const query = new URLSearchParams({ limit: "20" });
   if (beforeId !== null) query.set("before_id", String(beforeId));
+  if (status) query.set("status", status);
   return equipmentRequest(`/${equipmentId}/alerts?${query}`, { signal });
 }
 
 export function getEquipmentAlert(equipmentId, alertId, { signal } = {}) {
   return equipmentRequest(`/${equipmentId}/alerts/${alertId}`, { signal });
+}
+
+export function closeEquipmentAlert(equipmentId, alertId) {
+  return equipmentRequest(`/${equipmentId}/alerts/${alertId}/close`, { method: "POST" });
 }

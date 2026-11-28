@@ -34,6 +34,7 @@ def get_equipment_monitoring(
         select(Inspection)
         .where(
             Inspection.equipment_id == equipment.id,
+            Inspection.user_id == equipment.user_id,
             Inspection.started_at.is_not(None),
         )
         .order_by(
@@ -174,7 +175,8 @@ def get_equipment_monitoring(
                 SensorReading.inspection_id == inspection.id,
                 SensorReading.detection_status == "anomaly",
                 SensorReading.validation_status == "valid",
-                SensorReading.value.is_not(None),
+                SensorReading.value > float("-inf"),
+                SensorReading.value < float("inf"),
                 SensorReading.timestamp <= now,
             )
             .order_by(
@@ -197,9 +199,11 @@ def get_equipment_monitoring(
     alert_counts = dict(
         db.execute(
             select(Alert.severity, func.count(Alert.id))
+            .join(Inspection, (Inspection.id == Alert.inspection_id) & (Inspection.equipment_id == Alert.equipment_id))
             .where(
                 Alert.equipment_id == equipment.id,
                 Alert.status == "open",
+                Inspection.user_id == equipment.user_id,
             )
             .group_by(Alert.severity)
         ).all()
@@ -239,7 +243,7 @@ def get_equipment_monitoring(
         ),
         **_get_equipment_health(
             db,
-            equipment.id,
+            equipment,
             inspection.id if inspection else None,
             now,
         ),
@@ -285,7 +289,8 @@ def _get_inspection_faults(
             SensorReading.equipment_id == equipment_id,
             SensorReading.inspection_id == inspection_id,
             SensorReading.validation_status == "valid",
-            SensorReading.value.is_not(None),
+            SensorReading.value > float("-inf"),
+            SensorReading.value < float("inf"),
             SensorReading.timestamp <= now,
         )
         .order_by(
@@ -360,7 +365,8 @@ def _get_reading_evidence(
             SensorReading.equipment_id == equipment_id,
             SensorReading.inspection_id == inspection_id,
             SensorReading.validation_status == "valid",
-            SensorReading.value.is_not(None),
+            SensorReading.value > float("-inf"),
+            SensorReading.value < float("inf"),
             SensorReading.timestamp <= now,
         )
     )
@@ -385,16 +391,18 @@ def _health_history_entry(
 
 def _get_equipment_health(
     db: Session,
-    equipment_id: int,
+    equipment: Equipment,
     inspection_id: int | None,
     now: datetime,
 ) -> dict:
 
     query = (
         select(EquipmentHealthAssessment)
+        .join(Inspection, Inspection.id == EquipmentHealthAssessment.inspection_id)
         .where(
-            EquipmentHealthAssessment.equipment_id
-            == equipment_id,
+            EquipmentHealthAssessment.equipment_id == equipment.id,
+            Inspection.equipment_id == equipment.id,
+            Inspection.user_id == equipment.user_id,
             EquipmentHealthAssessment.assessed_at <= now,
         )
         .order_by(
@@ -442,7 +450,7 @@ def _get_equipment_health(
     if latest is not None:
         evidence = _get_reading_evidence(
             db,
-            equipment_id,
+            equipment.id,
             latest.inspection_id,
             latest.evidence_reading_ids,
             now,

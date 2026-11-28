@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
-import { getEquipmentAlert, getEquipmentAlerts } from "../services/equipmentService";
+import { closeEquipmentAlert, getEquipmentAlert, getEquipmentAlerts } from "../services/equipmentService";
 import { sensorLabel } from "../utils/sensorLabels";
 import "./EquipmentAlerts.css";
 
@@ -93,11 +94,26 @@ function NotificationDelivery({ notifications }) {
   );
 }
 
-function EquipmentAlertItem({ equipmentId, alert }) {
+function EquipmentAlertItem({ equipmentId, alert, onClosed }) {
   const [expanded, setExpanded] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const notificationStatus = ["failed", "pending", "delivered"].find((status) =>
     alert.notifications.some((notification) => notification.status === status)
   );
+
+  async function close() {
+    setBusy(true);
+    setError("");
+    try {
+      await closeEquipmentAlert(equipmentId, alert.id);
+      onClosed(alert.id);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <li className={`equipment-alert equipment-alert-${alert.severity}`}>
@@ -107,6 +123,7 @@ function EquipmentAlertItem({ equipmentId, alert }) {
             <span className="equipment-alert-labels">
               <span className="equipment-alert-severity">{SEVERITY_LABELS[alert.severity]}</span>
               <span>{ALERT_TYPES[alert.event_type]}</span>
+              <span>{alert.status === "open" ? "Open" : "Closed"}</span>
               {notificationStatus && (
                 <span data-delivery={notificationStatus}>Notification {notificationStatus}</span>
               )}
@@ -121,12 +138,16 @@ function EquipmentAlertItem({ equipmentId, alert }) {
         {expanded && (
           <div className="equipment-alert-details">
             <dl className="equipment-alert-meta">
-              <div><dt>Inspection</dt><dd>#{alert.inspection_id}</dd></div>
+              <div><dt>Inspection</dt><dd><Link to={`/inspections/${alert.inspection_id}`}>#{alert.inspection_id}</Link></dd></div>
               <div><dt>Alert status</dt><dd>{alert.status}</dd></div>
               {alert.health_assessment_id !== null && alert.health_assessment_id !== undefined && (
                 <div><dt>Health assessment</dt><dd>#{alert.health_assessment_id}</dd></div>
               )}
             </dl>
+            {alert.status === "open" && <button type="button" className="eq-text-link" onClick={close} disabled={busy}>
+              {busy ? "Closing alert…" : "Close alert"}
+            </button>}
+            {error && <p role="alert">{error}</p>}
             <div className="equipment-alert-detail-grid">
               <AlertEvidence equipmentId={equipmentId} alertId={alert.id} />
               <NotificationDelivery notifications={alert.notifications} />
@@ -138,7 +159,7 @@ function EquipmentAlertItem({ equipmentId, alert }) {
   );
 }
 
-export default function EquipmentAlerts({ equipmentId }) {
+export default function EquipmentAlerts({ equipmentId, status }) {
   const [beforeId, setBeforeId] = useState(null);
   const [page, setPage] = useState(null);
   const [error, setError] = useState("");
@@ -152,6 +173,7 @@ export default function EquipmentAlerts({ equipmentId }) {
       try {
         const result = await getEquipmentAlerts(equipmentId, {
           beforeId,
+          status,
           signal: controller.signal,
         });
         if (!controller.signal.aborted) {
@@ -172,12 +194,22 @@ export default function EquipmentAlerts({ equipmentId }) {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [equipmentId, beforeId, attempt]);
+  }, [equipmentId, beforeId, attempt, status]);
 
   function showPage(cursor) {
     setPage(null);
     setError("");
     setBeforeId(cursor);
+  }
+
+  function onClosed(id) {
+    setPage(previous => previous ? {
+      ...previous,
+      items: status === "open"
+        ? previous.items.filter(item => item.id !== id)
+        : previous.items.map(item => item.id === id ? { ...item, status: "closed" } : item),
+    } : previous);
+    setAttempt(value => value + 1);
   }
 
   return (
@@ -206,7 +238,7 @@ export default function EquipmentAlerts({ equipmentId }) {
       {page?.items.length > 0 && (
         <ul className="equipment-alert-list" role="list">
           {page.items.map((alert) => (
-            <EquipmentAlertItem key={alert.id} equipmentId={equipmentId} alert={alert} />
+            <EquipmentAlertItem key={alert.id} equipmentId={equipmentId} alert={alert} onClosed={onClosed} />
           ))}
         </ul>
       )}

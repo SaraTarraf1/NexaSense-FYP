@@ -67,6 +67,7 @@ class EquipmentCreate(EquipmentBase):
 
 
 class EquipmentUpdate(BaseModel):
+    status: Literal["active", "inactive"] | None = None
     """Schema for updating existing equipment."""
 
     name: str | None = Field(default=None, min_length=1, max_length=150)

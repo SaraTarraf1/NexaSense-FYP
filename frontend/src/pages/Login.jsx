@@ -27,6 +27,10 @@ export default function Login() {
       setError('Email and password are required. Enter both to continue.');
       return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Enter a valid email address.');
+      return;
+    }
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
