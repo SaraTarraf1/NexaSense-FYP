@@ -8,6 +8,7 @@ from app.api.alerts import router as alerts_router
 from app.api.auth import router as auth_router
 from app.api.equipment import router as equipment_router
 from app.api.inspections import router as inspections_router
+from app.api.history import router as history_router
 from app.api.sensor_readings import router as sensor_readings_router
 from app.services.sensor_scheduler import sensor_scheduler
 from app.api.equipment_monitoring import router as equipment_monitoring_router
@@ -50,6 +51,7 @@ app.include_router(inspections_router)
 app.include_router(sensor_readings_router)
 app.include_router(equipment_monitoring_router)
 app.include_router(alerts_router)
+app.include_router(history_router)
 
 @app.get("/")
 def root():

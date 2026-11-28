@@ -9,12 +9,6 @@ import { getEquipmentById } from "../services/equipmentService";
 import "./EquipmentDetails.css";
 import { EquipmentMonitoringPanel } from "./EquipmentMonitoring";
 
-const sensors = [
-  { name: "Temperature", short: "Temp", unit: "°C", color: "temperature" },
-  { name: "Humidity", short: "Humidity", unit: "%RH", color: "humidity" },
-  { name: "Vibration", short: "Vibration", unit: "mm/s", color: "vibration" },
-  { name: "Energy", short: "Energy", unit: "kWh", color: "energy" },
-];
 const tabs = [
   ["overview", "Overview"], ["inspections", "Inspections"],
   ["sensors", "Sensor history"], ["health", "Health & faults"],
@@ -38,22 +32,6 @@ function formatDate(value, dateOnly = false) {
   return dateOnly ? new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : new Date(value).toLocaleString();
 }
 
-function EmptyState({ title, children }) {
-  return <div className="eq-detail-empty"><span className="eq-empty-icon"><Icon name="report" /></span><h3>{title}</h3><p>{children}</p></div>;
-}
-
-function SensorCards() {
-  return <section aria-label="Latest sensor readings">
-    <div className="equipment-section-heading"><h2>Latest readings</h2><span>Awaiting valid inspection readings</span></div>
-    <div className="eq-reading-grid">{sensors.map(sensor => <article className={`eq-reading-card ${sensor.color}`} key={sensor.name}>
-      <div className="eq-reading-heading"><h3>{sensor.name}</h3><span className="eq-status-tag">Missing</span></div>
-      <p className="eq-reading-value">— <small>{sensor.unit}</small></p>
-      <div className="eq-sparkline-empty" aria-label="No readings to chart"><span>No readings yet</span></div>
-      <p className="eq-reading-note"><Icon name="clock" /> No valid value or timestamp</p>
-    </article>)}</div>
-  </section>;
-}
-
 export default function EquipmentDetails() {
   const { equipmentId } = useParams();
   return <EquipmentDetailsView key={equipmentId} equipmentId={equipmentId} />;
@@ -65,7 +43,6 @@ function EquipmentDetailsView({ equipmentId }) {
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState("overview");
-  const [sensorIndex, setSensorIndex] = useState(0);
   useEffect(() => {
     let active = true;
     getEquipmentById(equipmentId).then(data => { if (active) { setRecord(data); setError(""); } })
@@ -75,7 +52,6 @@ function EquipmentDetailsView({ equipmentId }) {
   const equipment = record?.id === Number(equipmentId) ? record : null;
   const monitoringState = useEquipmentMonitoring(equipment?.id);
   const healthAssessment = monitoringState.monitoring?.health_assessment;
-  const sensor = sensors[sensorIndex];
 
   function tabKeyDown(event, index) {
     let next;
@@ -89,12 +65,6 @@ function EquipmentDetailsView({ equipmentId }) {
     document.getElementById(`eq-tab-${tabs[next][0]}`)?.focus();
   }
 
-  const trend = <section className="eq-detail-card eq-trend-card">
-    <div className="eq-card-heading"><div><h2>{sensor.name} trend</h2><p>Inspection history · no valid readings available</p></div></div>
-    <div className="eq-sensor-picker" aria-label="Trend sensor">{sensors.map((item, index) => <button key={item.name} onClick={() => setSensorIndex(index)} aria-pressed={sensorIndex === index}><i className={item.color} />{item.short}</button>)}</div>
-    <div className="eq-chart-empty"><div><span className={`eq-chart-unit ${sensor.color}`}>{sensor.unit}</span><strong>No {sensor.name.toLowerCase()} history yet</strong><p>Valid readings from inspections will appear here.</p></div></div>
-    {tab !== "sensors" && <button className="eq-text-link" onClick={() => setTab("sensors")}>Open full sensor history <span aria-hidden="true">→</span></button>}
-  </section>;
   return <EquipmentLayout breadcrumb={equipment?.identifier || "Equipment details"}>
     <div className="eq-details">
       <Link className="eq-back-button" to="/equipment"><span aria-hidden="true">←</span> Back to equipment</Link>
@@ -141,9 +111,9 @@ function EquipmentDetailsView({ equipmentId }) {
         <div className="eq-detail-tabs" role="tablist" aria-label="Equipment details">{tabs.map(([value, label], index) => <button key={value} id={`eq-tab-${value}`} role="tab" aria-selected={tab === value} aria-controls="eq-detail-panel" tabIndex={tab === value ? 0 : -1} onKeyDown={event => tabKeyDown(event, index)} onClick={() => setTab(value)}>{label}</button>)}</div>
         <div id="eq-detail-panel" role="tabpanel" aria-labelledby={`eq-tab-${tab}`} tabIndex={0}>
           {tab === "overview" && <EquipmentMonitoringPanel {...monitoringState} onOpenAlerts={() => setTab("alerts")} />}
-          {tab === "sensors" && <><SensorCards /><div className="eq-history-full">{trend}</div></>}
+          {tab === "sensors" && <section className="eq-detail-card"><h2>Sensor history</h2><Link to={`/history?equipment=${equipment.id}`}>Analyze this equipment's sensor history</Link></section>}
           {tab === "health" && <EquipmentMonitoringPanel {...monitoringState} healthAndFaults />}
-          {tab === "inspections" && <section className="eq-detail-card"><h2>Inspections</h2><EmptyState title="Inspection history is unavailable">Inspections for this equipment will appear when the inspection service is connected.</EmptyState></section>}
+          {tab === "inspections" && <section className="eq-detail-card"><h2>Inspections</h2><Link to={`/history?equipment=${equipment.id}&section=inspections`}>View inspection history</Link></section>}
           {tab === "alerts" && <EquipmentAlerts key={equipment.id} equipmentId={equipment.id} />}
           {tab === "profile" && <section className="eq-detail-card"><div className="eq-card-heading"><h2>Equipment profile</h2><Link className="eq-text-link" to={`/equipment/${equipment.id}/edit`}>Edit profile →</Link></div><dl className="equipment-details-grid">{[["Identifier", equipment.identifier], ["Name", equipment.name], ["Type", equipment.equipment_type], ["Location", equipment.location], ["Manufacturer", equipment.manufacturer], ["Model", equipment.model], ["Serial number", equipment.serial_number], ["Status", equipment.status], ["Installation date", formatDate(equipment.installation_date, true)], ["Registered on", formatDate(equipment.created_at)], ["Last updated", formatDate(equipment.updated_at)]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "Not specified"}</dd></div>)}</dl><div className="equipment-details-description"><span>Notes</span><p>{equipment.description || "No notes provided."}</p></div></section>}
         </div>

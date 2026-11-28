@@ -66,10 +66,16 @@ export async function registerEquipment(equipmentData) {
 }
 
 // GET /api/equipment
-export async function getAllEquipment() {
+export async function getAllEquipment({ signal } = {}) {
   return equipmentRequest("", {
     method: "GET",
+    signal,
   });
+}
+
+export function getEquipmentHistory(equipmentId, section, params, signal) {
+  const path = section ? `/${section}` : "";
+  return equipmentRequest(`/${equipmentId}/history${path}?${new URLSearchParams(params)}`, { signal });
 }
 
 // GET /api/equipment/{equipment_id}
