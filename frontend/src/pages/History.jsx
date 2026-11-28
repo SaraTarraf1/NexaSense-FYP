@@ -74,6 +74,14 @@ function Occurrences({ title, items }) {
   </li>)}</ul> : <p>None recorded.</p>}</div>;
 }
 
+export function SensorStatistics({ data }) {
+  return <div className="history-scroll"><table><thead><tr>{["Sensor", "Unit", "Minimum", "Maximum", "Average", "Valid readings"].map(title => <th key={title} scope="col">{title}</th>)}</tr></thead>
+    <tbody>{data.map(group => <tr key={JSON.stringify([group.sensor_type, group.unit])}>
+      <th scope="row">{sensorLabel(group.sensor_type)}</th><td>{group.unit}</td>
+      {[group.minimum, group.maximum, group.average, group.count].map((value, index) => <td key={index}>{formatValue(value)}</td>)}
+    </tr>)}</tbody></table></div>;
+}
+
 function Summary({ data }) {
   const counts = [
     ["Inspections", data.inspections], ["Valid readings", data.valid_measurements],
@@ -84,11 +92,7 @@ function Summary({ data }) {
     <section className="history-card">
       <h2>Sensor statistics</h2>
       {data.sensors.length ? <>
-        <div className="history-scroll"><table><thead><tr>{["Sensor", "Unit", "Minimum", "Maximum", "Average", "Valid readings"].map(title => <th key={title} scope="col">{title}</th>)}</tr></thead>
-    <tbody>{data.sensors.map(group => <tr key={JSON.stringify([group.sensor_type, group.unit])}>
-      <th scope="row">{sensorLabel(group.sensor_type)}</th><td>{group.unit}</td>
-      {[group.minimum, group.maximum, group.average, group.count].map((value, index) => <td key={index}>{formatValue(value)}</td>)}
-    </tr>)}</tbody></table></div>
+        <SensorStatistics data={data.sensors} />
         <div className="history-charts">{data.sensors.filter(group => group.points.length > 0).map(group =>
           <Trend key={JSON.stringify([group.sensor_type, group.unit])} group={group} />
         )}</div>
@@ -105,7 +109,7 @@ function InspectionLink({ id }) {
   return <Link to={`/inspections/${id}`}>#{id}</Link>;
 }
 
-function RecordTable({ items, section }) {
+export function RecordTable({ items, section }) {
   if (section === "health") return <ol className="history-timeline">{items.map(item => <li key={item.id}>
     <time>{formatDate(item.assessed_at)}</time> <InspectionLink id={item.inspection_id} /> <HealthStatusBadge status={item.status} />
     <p>{item.message}</p>{item.missing_sensor_types.length > 0 && <p>Missing sensors: {item.missing_sensor_types.map(sensorLabel).join(", ")}</p>}

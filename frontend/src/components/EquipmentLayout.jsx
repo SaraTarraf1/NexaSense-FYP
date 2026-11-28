@@ -51,6 +51,7 @@ export default function EquipmentLayout({
             Inspections
           </NavLink>
           <NavLink to="/history">History</NavLink>
+          <NavLink to="/reports">Reports</NavLink>
         </nav>
 
         {/* Robot Connection */}

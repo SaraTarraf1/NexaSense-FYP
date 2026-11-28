@@ -24,3 +24,40 @@ Anomaly frequencies are the share of saved anomalies with that type. Fault frequ
 3. Confirm charts label temperature, thermal temperature, and vibration using the recorded units when those sensors have results. Open a fault match to view its evidence.
 4. Try a reversed date range, an empty range, and a URL referencing equipment owned by a second account. Check that switching equipment clears previous results immediately.
 5. Capture the summary with sensor charts, the paginated reading table, and the health timeline for project evidence.
+
+## Inspection and maintenance reports
+
+Choose equipment and a completed inspection in **Reports**. Equipment Details opens Reports with equipment selected, and completed inspection details open it with both selections populated. Generation collects the stored inspection, equipment profile, readings, anomalies, fault matches and evidence, health assessments, and recorded alert severity for that inspection. Repeated generation returns the first saved report.
+
+Migration `fce4763b892a` adds `inspection_reports` with an owner, equipment and inspection foreign keys, a timezone-aware generation time, a unique inspection reference, and a versioned JSON snapshot. PostgreSQL locks the inspection row during report generation to serialize concurrent requests for the same inspection. Deleting a parent record under the existing data deletion policy removes its dependent reports. ReportLab 5.1.2 renders the saved snapshot with repeating table headings and numbered pages.
+
+| Method | Route | Response |
+| --- | --- | --- |
+| GET | `/api/reports/eligible/{equipment_id}` | Paginated completed inspections for owned equipment |
+| POST | `/api/reports` | Saved report detail for JSON fields `equipment_id` and `inspection_id` |
+| GET | `/api/reports` | Paginated saved report history with an optional `equipment_id` filter |
+| GET | `/api/reports/{report_id}` | Metadata and saved snapshot |
+| GET | `/api/reports/{report_id}/pdf` | Authenticated PDF attachment |
+
+Report listing and eligibility accept `offset` and `limit`. An inaccessible resource returns 404. An owned inspection with a status other than completed returns 409 on generation.
+
+| Stored result | Suggested action |
+| --- | --- |
+| DR-001 overheating | Inspect ventilation, cooling and operating conditions |
+| DR-002 mechanical stress | Inspect components, mounting and alignment |
+| DR-003 electrical overheating | Arrange a qualified electrical inspection |
+| DR-004 pump mechanical fault | Inspect pump mounting, coupling, bearings and operating conditions |
+| DR-005 ventilation mechanical fault | Inspect the fan, drive, mounting and airflow |
+| DR-006 heating system overheating | Inspect controls, heat transfer and ventilation |
+| Unknown or undetermined fault | Arrange technical inspection or collect missing measurements, respectively |
+| Insufficient data or not evaluated | Complete required measurements and review the next health assessment |
+| Normal, warning or critical | Continue routine maintenance, schedule a review, or prioritize a qualified review, respectively |
+
+These recommendations are predefined maintenance suggestions. Long inspections increase snapshot size and PDF creation time because all stored measurements are included. Built-in PDF fonts cover the standard Latin character set.
+
+### Reports QA
+
+1. Open a completed inspection and follow **Generate or view report**. Generate twice and check that both requests return the same report ID.
+2. Compare the saved inspection, statistics, evidence, and health with the originating inspection. Generate a report for a completed inspection with missing data and check the limitations.
+3. Download the PDF. Inspect the branding, generation date, page numbers, and final reading on a multi-page report. Try the PDF route without a token and with another account.
+4. Capture the report list, saved details, and a multi-page PDF preview for project evidence.

@@ -159,6 +159,10 @@ function InspectionDetails({ inspectionId }) {
               <span>Equipment ID</span>
               <Link to={`/equipment/${inspection.equipment_id}`}>#{inspection.equipment_id} · Equipment monitoring</Link>
             </div>
+            {inspection.status === "completed" && <div>
+              <span>Inspection report</span>
+              <Link to={`/reports?equipment=${inspection.equipment_id}&inspection=${inspection.id}`}>Generate or view report</Link>
+            </div>}
             {inspection.scheduled_at && (
               <div>
                 <span>Scheduled for</span>
