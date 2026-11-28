@@ -884,3 +884,5 @@ The sensor seed script registers the temperature, vibration and thermal sensor d
 The latest verified merged `main` commit for these features was `4cf466b` (pull request #4, Multi-Sensor Monitoring). The local checkout was verified synchronized with `origin/main` and clean after pulling.
 
 **Next: User Story 5 — Equipment Monitoring.** Build an equipment-level view of the latest sensor readings, measurement trends and monitoring history using the existing equipment profiles and inspection data. AI anomaly detection, fault classification, alerting, robot navigation, real Raspberry Pi sensors and MQTT remain future work.
+
+For the current history API and demonstration steps, see the [prototype workflows](docs/prototype-workflows.md).

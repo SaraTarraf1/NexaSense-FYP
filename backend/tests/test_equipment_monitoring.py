@@ -18,6 +18,7 @@ from app.models.equipment_health_assessment import EquipmentHealthAssessment
 from app.models.fault_classification import FaultClassification
 from app.models.inspection import Inspection
 from app.models.sensor import Sensor
+from app.models.sensor_reading import SensorReading
 from app.services.sensor_configuration import SENSOR_DEFINITIONS
 from app.services.sensor_reading_service import save_sensor_reading
 
@@ -357,6 +358,11 @@ def test_monitoring_excludes_future_readings():
             datetime.now(timezone.utc)
             + timedelta(minutes=10)
         )
+        db.add(SensorReading(
+            equipment_id=equipment.id, inspection_id=inspection.id, sensor_id=sensor.id,
+            value=float("inf"), timestamp=valid.timestamp + timedelta(microseconds=1),
+            unit=sensor.unit, validation_status="valid",
+        ))
 
         db.commit()
 

@@ -18,6 +18,7 @@ import EditEquipment from "./pages/EditEquipment.jsx";
 import Inspections from "./pages/Inspections.jsx";
 import InspectionMonitoring from "./pages/InspectionMonitoring.jsx";
 import EquipmentMonitoring from "./pages/EquipmentMonitoring.jsx";
+import History from "./pages/History.jsx";
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
 
         {/* Routes requiring authentication */}
         <Route element={<ProtectedRoute />}>
+          <Route path="/history" element={<History />} />
         
           <Route
             path="/dashboard"

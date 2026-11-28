@@ -84,6 +84,8 @@ def get_equipment_monitoring(
                 SensorReading.sensor_id == sensor.id,
                 SensorReading.validation_status == "valid",
                 SensorReading.value.is_not(None),
+                SensorReading.value > float("-inf"),
+                SensorReading.value < float("inf"),
                 SensorReading.timestamp <= now,
             )
 

@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
+from math import isfinite
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user, get_db
+from app.models.equipment import Equipment
 from app.models.inspection import Inspection
 from app.models.sensor import Sensor
 from app.models.sensor_reading import SensorReading
@@ -23,9 +25,10 @@ def verify_inspection_access(
     user_id: int,
 ) -> Inspection:
     inspection = db.scalar(
-        select(Inspection).where(
+        select(Inspection).join(Equipment, Equipment.id == Inspection.equipment_id).where(
             Inspection.id == inspection_id,
             Inspection.user_id == user_id,
+            Equipment.user_id == user_id,
         )
     )
 
@@ -43,17 +46,18 @@ def serialize_reading(
     sensor_type: str,
     freshness_threshold_seconds: int | None = None,
 ) -> SensorReadingResponse:
+    nonfinite = reading.value is not None and not isfinite(reading.value)
     return SensorReadingResponse(
         id=reading.id,
         inspection_id=reading.inspection_id,
         equipment_id=reading.equipment_id,
         sensor_id=reading.sensor_id,
         sensor_type=sensor_type,
-        value=reading.value,
+        value=None if nonfinite else reading.value,
         unit=reading.unit,
         timestamp=reading.timestamp,
-        validation_status=reading.validation_status,
-        validation_message=reading.validation_message,
+        validation_status="invalid" if nonfinite and reading.validation_status == "valid" else reading.validation_status,
+        validation_message=reading.validation_message or ("Non-finite measurement." if nonfinite else None),
         freshness_threshold_seconds=freshness_threshold_seconds,
     )
 
@@ -133,6 +137,8 @@ def latest_sensor_readings(
         readings = readings.where(
             SensorReading.validation_status == "valid",
             SensorReading.value.is_not(None),
+            SensorReading.value > float("-inf"),
+            SensorReading.value < float("inf"),
             SensorReading.timestamp <= now,
         )
 
