@@ -87,7 +87,7 @@ function EquipmentDetailsView({ equipmentId }) {
                   <Icon name="calendar" />Schedule
                 </Link>
               </>}
-              <button disabled title="Report generation is not connected yet"><Icon name="report" />Generate report</button>
+              <Link to={`/reports?equipment=${equipment.id}`}><Icon name="report" />Reports</Link>
               <Link to={`/equipment/${equipment.id}/edit`}>Edit equipment</Link>
             </div>
           </div>

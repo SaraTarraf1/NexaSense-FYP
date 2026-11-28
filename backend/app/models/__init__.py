@@ -11,6 +11,7 @@ from app.models.revoked_token import RevokedToken
 from app.models.equipment import Equipment
 from app.models.equipment_health_assessment import EquipmentHealthAssessment
 from app.models.inspection import Inspection
+from app.models.inspection_report import InspectionReport
 from app.models.sensor import Sensor
 from app.models.sensor_reading import SensorReading
 from app.models.fault_classification import FaultClassification
@@ -23,6 +24,7 @@ __all__ = [
     "Equipment",
     "EquipmentHealthAssessment",
     "Inspection",
+    "InspectionReport",
     "Sensor",
     "SensorReading",
     "FaultClassification",
